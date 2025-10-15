@@ -14,9 +14,8 @@ class Interpreter(InterpreterBase):
         if i.elem_type == "func":
           if i.get("name") == "main":
             main_node = i
-            print("YIPPIEE its a main") ###
+            print("YIPPIEE its a main~~~~~~~~~~~~~~~~~~~~~~~") ###
             self.run_func(main_node)
-            break
           else:
             super().error(
               ErrorType.NAME_ERROR,
@@ -24,16 +23,15 @@ class Interpreter(InterpreterBase):
             )
 
   def run_func(self, func_node):
-    print("run func starts now~") ###
+    print("run func starts now~~~~~~~~~~~~~~~~~~~~~~~") ###
     if func_node.elem_type == "func": 
       for stmt_node in func_node.get("statements"):
         self.run_statement(stmt_node)
 
   def run_statement(self, statement_node):
-    print("run statement starts now~") ###
+    print("run statement starts now~~~~~~~~~~~~~~~~~~~~~~~") ###
 
     if statement_node.elem_type == "vardef": 
-      print("is variable") ###
       for i in statement_node.get("name"):
         self.variable_name_to_value[i] = None
         print({i}) ###
@@ -72,7 +70,7 @@ class Interpreter(InterpreterBase):
     resulting_value = evaluate_expression(source_node)
     this.variable_name_to_value[target_var_name] = resulting_value
     '''
-    print("do assigment starting now!!~") ###
+    print("do assigment starting now~~~~~~~~~~~~~~~~~~~~~~~") ###
 
 
     
@@ -80,7 +78,7 @@ class Interpreter(InterpreterBase):
 
 
   def evaluate_expression(self, expression_node):
-    print("eval expression starting now~") ###
+    print("eval expression starting now~~~~~~~~~~~~~~~~~~~~~~~") ###
     if (expression_node.elem_type == "int") or (expression_node.elem_type == "string"):
       return expression_node.get("val")
     
