@@ -10,20 +10,28 @@ class Interpreter(InterpreterBase):
     self.variable_name_to_value = {}
     
     #main_func_node = get_main_func_node(ast)
-    if elem.elem_type == "program":
-    #find dict:func, find dict.name =="main", 
+    if ast.elem_type == "program": 
+      func_def_node = ast.get("functions") 
+      for i in func_def_node:
+        if i.elem_type == "func":
+          if i.get("name") == "main":
+            print("YIPPIEE")
+            break
+          else:
+            super().error(
+              ErrorType.NAME_ERROR,
+              "No main() function was found",
+            )
 
   def run_func(func_node):
 
 
-  def run_statement(statement_node):
 
+  #def run_statement(statement_node):
 
-  def do_assignment(statement_node):
+  #def do_assignment(statement_node):
 
-
-  def evaluate_expression(expression_node):
-
+  #def evaluate_expression(expression_node):
 
 def main():
   program = """def main() {
