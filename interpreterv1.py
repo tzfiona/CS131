@@ -116,7 +116,6 @@ class Interpreter(InterpreterBase):
           #print("op1 - op2 =", op1 - op2) ###
           return op1 - op2
       else:
-        print("INCOMPATIBLE TYPESSSSS")
         super().error(
           ErrorType.TYPE_ERROR,
           "Incompatible types for arithmetic operation",
