@@ -87,8 +87,8 @@ class Interpreter(InterpreterBase):
   def do_assignment(self, statement_node):
     #print("do assigment starting now~~~~~~~~~~~~~~~~~~~~~~~") ###
     target_var_name = statement_node.get("var")
-    if target_var_name not in self.variable_name_to_value:
-      print("Undefined variable:", target_var_name)
+    #if target_var_name not in self.variable_name_to_value:
+      #print("Undefined variable:", target_var_name)
     source_node = statement_node.get("expression")
     resulting_value = self.evaluate_expression(source_node)
     self.variable_name_to_value[target_var_name] = resulting_value
