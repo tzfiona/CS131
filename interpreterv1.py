@@ -72,6 +72,12 @@ class Interpreter(InterpreterBase):
     '''
     print("do assigment starting now~~~~~~~~~~~~~~~~~~~~~~~") ###
 
+# target_var_name + statement_node.get("name")
+# if ___.dict(target_var_name)!= "target_var_name":
+    # print("Undefined variable:", target_var_name)
+# source_node = statement_node.get("expression")
+# resulting_value = evaluate_expression(source_node)
+# self.variable_name_to_value[target_var_name] = resulting_value
 
     
 
