@@ -1,5 +1,6 @@
 from intbase import InterpreterBase
 from brewparse import parse_program
+from intbase import ErrorType
 
 
 class Interpreter(InterpreterBase):
