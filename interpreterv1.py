@@ -130,12 +130,15 @@ class Interpreter(InterpreterBase):
               ErrorType.NAME_ERROR,
               f"No inputi() function found that takes > 1 parameter",
             )
+          elif len(args) == 0:
+            user_input = super().get_input()
+            return int(user_input)
 
 
 def main():
   program = """def main() {
                   var x;
-                  x = inputi("enter num: ");
+                  x = inputi();
                   print(x);
             }"""
   
