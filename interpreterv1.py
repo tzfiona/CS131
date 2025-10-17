@@ -37,15 +37,15 @@ class Interpreter(InterpreterBase):
     #print("run statement starts now~~~~~~~~~~~~~~~~~~~~~~~") ###
 
     if statement_node.elem_type == "vardef": 
-      for i in statement_node.get("name"):
-        if i in self.variable_name_to_value:
-          super().error(
-            ErrorType.NAME_ERROR,
-            f"Variable {i} defined more than once",
-          )
-        else:
-          self.variable_name_to_value[i] = None
-        #print("saves var", i, "to dict") ###
+      i = statement_node.get("name")
+      if i in self.variable_name_to_value:
+        super().error(
+          ErrorType.NAME_ERROR,
+          f"Variable {i} defined more than once",
+        )
+      else:
+        self.variable_name_to_value[i] = None
+      #print("saves var", i, "to dict") ###
 
     elif statement_node.elem_type == "=": 
       a = statement_node.get("var")
@@ -66,22 +66,12 @@ class Interpreter(InterpreterBase):
           item = self.evaluate_expression(k)
           print_statement.append(str(item)) 
         #print(*print_statement) ### my original way
-        output = " ".join(print_statement)
+        output = "".join(print_statement)
         super().output(output)
-      elif statement_node.get("name") == "inputi":
-        args = statement_node.get("args")
-        if args[0]:
-          super().output(args[0])
-        else:
-          super().error(
-            ErrorType.NAME_ERROR,
-            f"No inputi() function found that takes > 1 parameter",
-          )
-        user_input = super().get_input()
       else:
         super().error(
           ErrorType.NAME_ERROR,
-          f"Function {statement_node.get("name")} has not been defined",
+          f"Function {statement_node.get('name')} has not been defined",
         )
 
 
@@ -103,6 +93,11 @@ class Interpreter(InterpreterBase):
     
     elif expression_node.elem_type == "qname":
       name = expression_node.get("name")
+      if name not in self.variable_name_to_value:
+        super().error(
+          ErrorType.NAME_ERROR,
+          f"Variable {name} has not been defined",
+        )
       return self.variable_name_to_value.get(name)
     
     elif (expression_node.elem_type == "+") or (expression_node.elem_type == "-"): 
@@ -121,13 +116,27 @@ class Interpreter(InterpreterBase):
           ErrorType.TYPE_ERROR,
           "Incompatible types for arithmetic operation",
         )
+    elif expression_node.elem_type == "fcall":
+        if expression_node.get("name") == "inputi":
+          args = expression_node.get("args")
+          if len(args) == 1:
+            args0 = self.evaluate_expression(args[0])
+            super().output(args0)
+            user_input = super().get_input()
+            return int(user_input)
+          elif len(args) > 1:
+            super().output(args[0])
+            super().error(
+              ErrorType.NAME_ERROR,
+              f"No inputi() function found that takes > 1 parameter",
+            )
 
 
 def main():
   program = """def main() {
                   var x;
-                  x = 11 + 4;
-                  print("The result is:", x);
+                  x = inputi("enter num: ");
+                  print(x);
             }"""
   
   interpreter = Interpreter()
