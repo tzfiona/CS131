@@ -34,7 +34,7 @@ class Interpreter(InterpreterBase):
 
 
   def run_statement(self, statement_node):
-    #print("run statement starts now~~~~~~~~~~~~~~~~~~~~~~~") ###
+    #print("run statement starts now~~~~~~~~~~~~~~~~~~~~~~~", statement_node) ###
 
     if statement_node.elem_type == "vardef": 
       i = statement_node.get("name")
@@ -60,6 +60,7 @@ class Interpreter(InterpreterBase):
       #print("saves", b, "to", a) ###
 
     elif statement_node.elem_type == "fcall": 
+      #print("calling fcall~~~~~~~~~~~~~~~~~~~~~~~") ###
       if statement_node.get("name") == "print":
         print_statement = []
         for k in statement_node.get("args"):
@@ -125,7 +126,6 @@ class Interpreter(InterpreterBase):
             user_input = super().get_input()
             return int(user_input)
           elif len(args) > 1:
-            super().output(args[0])
             super().error(
               ErrorType.NAME_ERROR,
               f"No inputi() function found that takes > 1 parameter",
@@ -137,9 +137,9 @@ class Interpreter(InterpreterBase):
 
 def main():
   program = """def main() {
-                  var x;
-                  x = inputi();
-                  print(x);
+                  var P;
+                  P = inputi("enter num:");
+                  print(P);
             }"""
   
   interpreter = Interpreter()
