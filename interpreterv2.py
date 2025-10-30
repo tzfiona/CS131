@@ -1,5 +1,6 @@
 from intbase import InterpreterBase, ErrorType
 from brewparse import parse_program
+from intbase import ErrorType
 
 generate_image = False
 
@@ -91,8 +92,37 @@ class Interpreter(InterpreterBase):
             super().output(out)
 
             return 0  # undefined behavior
+        
+        if fcall_name in self.funcs:
+            #print(fcall_name,"FUNC IS IN DICT") ############################
+            funcdef = self.funcs[fcall_name]
+            #print(funcdef, "CHECKKKKK") ############################
 
-        super().error(ErrorType.NAME_ERROR, "unknown function")
+            prev_env = self.env
+            self.env = Environment() #create new env since we're going into a new func
+
+            for statement in funcdef.get("statements"):
+              kind = statement.elem_type
+              #print(statement, "-IS-", kind, "WOWOOWWOWWWO") ############################
+
+              if kind == self.VAR_DEF_NODE:
+                self.__run_vardef(statement)
+              elif kind == "=":
+                self.__run_assign(statement)
+              elif kind == self.FCALL_NODE:
+                returned = self.__run_fcall(statement)
+              elif kind == "return":
+                returned = self.__eval_expr(statement.get("expression"))
+                break
+              
+              self.env = prev_env
+              return returned
+        
+        super().error(
+                            ErrorType.NAME_ERROR,
+                            f"Function {fcall_name} was not found",
+                        )
+        #super().error(ErrorType.NAME_ERROR, "unknown function") given error message
 
     def __eval_expr(self, expr):
         kind = expr.elem_type
@@ -128,7 +158,7 @@ class Interpreter(InterpreterBase):
 
 
 def main():
-    
+    '''
     program = """
                     def hi() {
                       print("hii");
@@ -141,8 +171,8 @@ def main():
   
     interpreter = Interpreter()
     interpreter.run(program)
-    
-'''
+    '''
+
     interpreter = Interpreter()
 
     # The code below is meant to help you test your interpreter on your own Brewin programs.
@@ -153,7 +183,7 @@ def main():
     global generate_image
     generate_image = True
     interpreter.run(program)
-'''
+
 
 if __name__ == "__main__":
     main()

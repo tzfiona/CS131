@@ -1,11 +1,7 @@
-
-
-
 def hi() {
-  print("hii");
+    print("hii");
 }
 
-
 def main() {
-  hi();
+    hi();
 }
