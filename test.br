@@ -1,7 +1,3 @@
-def hi() {
-    print("hii");
-}
-
 def main() {
-    hi();
+    return 1;
 }

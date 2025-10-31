@@ -48,7 +48,7 @@ class Interpreter(InterpreterBase):
         if "main" not in self.funcs:
             super().error(ErrorType.NAME_ERROR, "main function not found")
 
-        for statement in self.funcs["main"].get("statements"):
+        for statement in self.funcs["main"].get("statements"): # @func def node here
             kind = statement.elem_type
 
             if kind == self.VAR_DEF_NODE:
@@ -57,6 +57,17 @@ class Interpreter(InterpreterBase):
                 self.__run_assign(statement)
             elif kind == self.FCALL_NODE:
                 self.__run_fcall(statement)
+            elif kind == self.IF_NODE:
+                print("YAYYYY its IF") ################
+                self.__run_if(statement)
+            elif kind == self.WHILE_NODE:
+                print("YAYYYY its WHILE") ################
+                self.__run_while(statement)
+            elif kind == self.RETURN_NODE:
+                print("YAYYYY its RETURN") ################
+                self.__run_return(statement)
+            else:
+                super().error(ErrorType.NAME_ERROR, "unknown kind detected") #idk if this we required
 
     def __run_vardef(self, statement):
         name = statement.get("name")
@@ -155,6 +166,19 @@ class Interpreter(InterpreterBase):
 
             elif kind == "+":
                 return l + r
+            
+    def __run_if(self, statement):
+        # Expression must be boolean, else ERROR
+
+    def __run_while(self, statement):
+        # Expression must be boolean, else ERROR
+
+    def __run_return(self, statement):
+        # Must exit function
+        # If there is a statement to return, must return by value
+
+
+
 
 
 def main():
