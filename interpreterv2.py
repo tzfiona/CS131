@@ -6,27 +6,37 @@ generate_image = False
 
 class Environment:
     def __init__(self):
-        self.env = {}
+        self.env = [{}]
 
     def fdef(self, varname):
         if self.exists(varname):
             return False
-        self.env[varname] = None
+        self.env[-1][varname] = None
         return True
 
     def exists(self, varname):
-        return varname in self.env
+        for i in reversed(self.env):
+            if varname in i:
+                return True
+        return False
 
     def get(self, varname):
-        if varname in self.env:
-            return self.env[varname]
+        for i in reversed(self.env):
+            if varname in i:
+                return i[varname]
         return None
-
+    
     def set(self, varname, value):
-        if not self.exists(varname):
-            return False
-        self.env[varname] = value
-        return True
+        for i in reversed(self.env):
+            if varname in i:
+                i[varname] = value
+                return True
+        return False
+
+    def pop(self):
+        self.env.pop()
+    def push(self):
+        self.env.append({})
 
 
 class Interpreter(InterpreterBase):
@@ -112,8 +122,7 @@ class Interpreter(InterpreterBase):
             if len(args) != len(parameter):
                 super().error(ErrorType.NAME_ERROR, f"incorrect # of arguements")
 
-            prev_env = self.env
-            self.env = Environment()
+            self.env.push()
 
             for x, y in zip(parameter, args):
                 val = self.__eval_expr(y)
@@ -142,7 +151,7 @@ class Interpreter(InterpreterBase):
                     returned = self.__eval_expr(statement.get("expression"))
                     break
 
-            self.env = prev_env
+            self.env.pop()
             return returned
 
         super().error(ErrorType.NAME_ERROR, "unknown function") 
@@ -160,7 +169,6 @@ class Interpreter(InterpreterBase):
             return None
         elif kind == self.QUALIFIED_NAME_NODE:
             var_name = expr.get("name")
-
             value = self.env.get(var_name)
             if value is None:
                 super().error(ErrorType.NAME_ERROR, "variable not defined")
@@ -283,9 +291,17 @@ class Interpreter(InterpreterBase):
                 ErrorType.TYPE_ERROR, "If condition is not a boolean. Must be a boolean.")
         
         if condition:
-            self.__run_stmts(statement.get("statements"))
+            final = self.__run_stmts(statement.get("statements")) 
+            if final is None:
+                pass
+            elif final is not None:
+                return final
         elif statement.get("else_statements"):
-            self.__run_stmts(statement.get("else_statements"))
+            final = self.__run_stmts(statement.get("else_statements"))
+            if final is None:
+                pass
+            elif final is not None:
+                return final
         return None
 
     def __run_while(self, statement): #~~~~~~~~~~~~~~~~~~~
@@ -298,7 +314,11 @@ class Interpreter(InterpreterBase):
                     ErrorType.TYPE_ERROR, "While condition is not a boolean. Must be a boolean.")
                 
             if condition:
-                self.__run_stmts(statement.get("statements"))
+                final = self.__run_stmts(statement.get("statements"))
+                if final is None:
+                    pass
+                elif final is not None:
+                    return final
             else:
                 break
         return None
