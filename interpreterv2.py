@@ -83,29 +83,22 @@ class Interpreter(InterpreterBase):
         if fcall_name == "inputi":
             if len(args) > 1:
                 super().error(ErrorType.NAME_ERROR, "too many arguments for inputi")
-
             if args:
                 super().output(str(self.__eval_expr(args[0])))
-
             return int(super().get_input())
 
         if fcall_name == "print":
             out = ""
-
             for arg in args:
-                out += str(self.__eval_expr(arg))
-
-            super().output(out)
-
-            return 0  # undefined behavior
+                out = self.__eval_expr(arg)
+                super().output(str(out))
+            return None  # undefined behavior
         
         if fcall_name == "inputs":
             if len(args) > 1:
                 super().error(ErrorType.NAME_ERROR, "too many arguments for inputs")
-
             if args:
                 super().output(str(self.__eval_expr(args[0])))
-
             return str(super().get_input())
 
         if fcall_name in self.funcs:
@@ -120,7 +113,7 @@ class Interpreter(InterpreterBase):
 
             prev_env = self.env
             self.env = Environment()
-            
+
             for x, y in zip(parameter, args):
                 val = self.__eval_expr(y)
                 self.env.fdef(x.get("name"))
@@ -164,7 +157,6 @@ class Interpreter(InterpreterBase):
                 return val
         elif kind == self.NIL_NODE: #~~~~~~~~~~~~~~
             return None
-
         elif kind == self.QUALIFIED_NAME_NODE:
             var_name = expr.get("name")
 
@@ -236,7 +228,6 @@ class Interpreter(InterpreterBase):
                 return -op1
             else:
                 super().error(ErrorType.TYPE_ERROR, "cannot use on non-int types")
-
         elif kind == "!": #~~~~~~~~~~~~~~~~~~~~
             op1 = self.__eval_expr(expr.get("op1"))
             if isinstance(op1, bool):
@@ -246,7 +237,6 @@ class Interpreter(InterpreterBase):
 
         elif kind == self.FCALL_NODE:
             return self.__run_fcall(expr)
-
         elif kind in self.ops:
             l, r = self.__eval_expr(expr.get("op1")), self.__eval_expr(expr.get("op2"))
 
@@ -254,10 +244,8 @@ class Interpreter(InterpreterBase):
                 super().error(
                     ErrorType.TYPE_ERROR, "invalid operand types for arithmetic"
                 )
-
             if kind == "-":
                 return l - r
-
             elif kind == "+":
                 return l + r
 
