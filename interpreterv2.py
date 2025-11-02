@@ -101,7 +101,15 @@ class Interpreter(InterpreterBase):
         if fcall_name == "print":
             out = ""
             for arg in args:
-                out += str(self.__eval_expr(arg))
+                arg = str(self.__eval_expr(arg))
+                if arg == "True":
+                    arg = "true"
+                    out += arg
+                elif arg == "False":
+                    arg = "false"
+                    out += arg
+                else:
+                    out += str(arg)                
             super().output(out)
             return 0  # undefined behavior
         
