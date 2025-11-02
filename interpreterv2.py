@@ -62,7 +62,7 @@ class Interpreter(InterpreterBase):
                 self.__run_if(statement)
             elif kind == self.WHILE_NODE:
                 print("YAYYYY its WHILE") ################
-                #self.__run_while(statement)
+                self.__run_while(statement)
             elif kind == self.RETURN_NODE:
                 print("YAYYYY its RETURN") ################
                 #self.__run_return(statement)
@@ -143,6 +143,8 @@ class Interpreter(InterpreterBase):
         elif kind == self.BOOL_NODE: #~~~~~~~~~~~~~~
             val = expr.get("val")
             return val == "true"
+        elif kind == "NIL_NODE": #~~~~~~~~~~~~~~
+            return None
 
         elif kind == self.QUALIFIED_NAME_NODE:
             var_name = expr.get("name")
@@ -153,8 +155,44 @@ class Interpreter(InterpreterBase):
 
             return value
         
-        elif kind == "==": #~~~~~~~~~~~~~
-            return self.__eval_expr(expr.get("op1")) == self.__eval_expr(expr.get("op2"))
+        elif kind in {"+", "-", "*", "/", "==", "!=", "<", "<=", ">", ">=", "&&", "||"}: #~~~~~~~~~~~~~~~~~~~~
+            op1 = self.__eval_expr(expr.get("op1"))
+            op2 = self.__eval_expr(expr.get("op2"))
+
+            if kind == "+":
+                return op1 + op2
+            if kind == "==":
+                return op1 == op2
+            if kind == "!=":
+                return op1 != op2
+            
+            if not isinstance(op1, int) or not isinstance(op2, int):
+                print("error, should be INT only")
+            elif kind == "-":
+                return op1 - op2
+            elif kind == "*":
+                return op1 * op2
+            elif kind == "/":
+                return op1 // op2
+            elif kind == "<":
+                return op1 < op2
+            elif kind == ">":
+                return op1 > op2
+            elif kind == "<=":
+                return op1 <= op2
+            elif kind == ">=":
+                return op1 >= op2
+            elif kind == "NEG":
+                return -op1
+            
+            if not isinstance(op1, bool) or not isinstance(op2, bool):
+                print("error, should be BOOL only")
+            elif kind == "&&":
+                return op1 and op2
+            elif kind == "||":
+                return op1 or op2
+            elif kind == "!":
+                return not op1
 
         elif kind == self.FCALL_NODE:
             return self.__run_fcall(expr)
@@ -199,11 +237,9 @@ class Interpreter(InterpreterBase):
         condition = self.__eval_expr(condition) 
         #print(condition, ": this is the condition type") ########################
         
-        if type(condition) == bool:
-            print("lol it is a boolean")
-        else:
+        if not isinstance(condition, bool):
             super().error(
-                ErrorType.TYPE_ERROR, "If condition is not a boolean. Must be a boolean")
+                ErrorType.TYPE_ERROR, "If condition is not a boolean. Must be a boolean.")
         
         if condition:
             self.__run_stmts(statement.get("statements"))
@@ -211,10 +247,25 @@ class Interpreter(InterpreterBase):
             self.__run_stmts(statement.get("else_statements"))
 
 
-    #def __run_while(self, statement):
+    def __run_while(self, statement): #~~~~~~~~~~~~~~~~~~~
         # Expression must be boolean, else ERROR
+        while True:
+            condition = statement.get("condition")
+            #print(condition, ": this is the condition") ########################
+            condition = self.__eval_expr(condition) 
+            #print(condition, ": this is the condition type") ########################
 
-    #def __run_return(self, statement):
+            if not isinstance(condition, bool):
+                super().error(
+                    ErrorType.TYPE_ERROR, "While condition is not a boolean. Must be a boolean.")
+                
+            if condition:
+                self.__run_stmts(statement.get("statements"))
+            else:
+                break
+
+
+    #def __run_return(self, statement): #~~~~~~~~~~~~~~~~~~~
         # Must exit function
         # If there is a statement to return, must return by value
 

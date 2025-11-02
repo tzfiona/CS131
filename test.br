@@ -1,7 +1,10 @@
 def main() {
     var x;
-    x = 8;
-    if (x == 8) {
+    x = "hello" + "hi";
+    if (x == "hellohi") {
         print("hi");
+    }
+    else {
+        print("bye");
     }
 }
