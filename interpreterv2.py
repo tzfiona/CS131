@@ -191,35 +191,39 @@ class Interpreter(InterpreterBase):
                     return True
                 return op1 != op2
             
-            if isinstance(op1, int) and isinstance(op2, int):
-                if kind == "+":
-                    return op1 + op2
-                elif kind == "-":
-                    return op1 - op2
-                elif kind == "*":
-                    return op1 * op2
-                elif kind == "/":
-                    return op1 // op2
-                elif kind == "<":
-                    return op1 < op2
-                elif kind == ">":
-                    return op1 > op2
-                elif kind == "<=":
-                    return op1 <= op2
-                elif kind == ">=":
-                    return op1 >= op2
+            if kind in {"+", "-", "*", "/"}:
+                if isinstance(op1, str) and isinstance(op2, str):
+                    if kind == "+":
+                        return op1 + op2
+                    else:
+                        super().error(ErrorType.TYPE_ERROR, "only + can be used with str")
+                if isinstance(op1, int) and isinstance(op2, int):
+                    if kind == "+":
+                        return op1 + op2
+                    elif kind == "-":
+                        return op1 - op2
+                    elif kind == "*":
+                        return op1 * op2
+                    elif kind == "/":
+                        return op1 // op2
+                    else:
+                        super().error(ErrorType.TYPE_ERROR, "cannot use int types")
                 else:
-                    super().error(ErrorType.TYPE_ERROR, "cannot use int types")
-            else:
-                super().error(ErrorType.TYPE_ERROR, "cannot compare values of diff types")
-
-            if isinstance(op1, str) and isinstance(op2, str):
-                if kind == "+":
-                    return op1 + op2
+                    super().error(ErrorType.TYPE_ERROR, "only int and str allowed")
+            elif kind in {"<", "<=", ">", ">="}:
+                if isinstance(op1, int) and isinstance(op2, int):
+                    if kind == "<":
+                        return op1 < op2
+                    elif kind == ">":
+                        return op1 > op2
+                    elif kind == "<=":
+                        return op1 <= op2
+                    elif kind == ">=":
+                        return op1 >= op2
+                    else:
+                        super().error(ErrorType.TYPE_ERROR, "types not defined")
                 else:
-                    super().error(ErrorType.TYPE_ERROR, "cannot use str types")
-            else:
-                    super().error(ErrorType.TYPE_ERROR, "cannot use str types")
+                    super().error(ErrorType.TYPE_ERROR, "only int allowed")
             
             if isinstance(op1, bool) and isinstance(op2, bool):
                 if kind == "&&":
@@ -246,17 +250,7 @@ class Interpreter(InterpreterBase):
 
         elif kind == self.FCALL_NODE:
             return self.__run_fcall(expr)
-        elif kind in self.ops:
-            l, r = self.__eval_expr(expr.get("op1")), self.__eval_expr(expr.get("op2"))
-
-            if isinstance(l, str) or isinstance(r, str):
-                super().error(
-                    ErrorType.TYPE_ERROR, "invalid operand types for arithmetic"
-                )
-            if kind == "-":
-                return l - r
-            elif kind == "+":
-                return l + r
+        
 
     def __run_stmts(self, statements): #~~~~~~~~~~~~~~~~~~~~
         for stmts in statements:
