@@ -1,3 +1,7 @@
 def main() {
-    return 1;
+    var x;
+    x = 8;
+    if (x == 8) {
+        print("hi");
+    }
 }

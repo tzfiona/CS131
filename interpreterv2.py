@@ -62,10 +62,10 @@ class Interpreter(InterpreterBase):
                 self.__run_if(statement)
             elif kind == self.WHILE_NODE:
                 print("YAYYYY its WHILE") ################
-                self.__run_while(statement)
+                #self.__run_while(statement)
             elif kind == self.RETURN_NODE:
                 print("YAYYYY its RETURN") ################
-                self.__run_return(statement)
+                #self.__run_return(statement)
             else:
                 super().error(ErrorType.NAME_ERROR, "unknown kind detected") #idk if this we required
 
@@ -140,6 +140,9 @@ class Interpreter(InterpreterBase):
 
         if kind == self.INT_NODE or kind == self.STRING_NODE:
             return expr.get("val")
+        elif kind == self.BOOL_NODE: #~~~~~~~~~~~~~~
+            val = expr.get("val")
+            return val == "true"
 
         elif kind == self.QUALIFIED_NAME_NODE:
             var_name = expr.get("name")
@@ -149,6 +152,9 @@ class Interpreter(InterpreterBase):
                 super().error(ErrorType.NAME_ERROR, "variable not defined")
 
             return value
+        
+        elif kind == "==": #~~~~~~~~~~~~~
+            return self.__eval_expr(expr.get("op1")) == self.__eval_expr(expr.get("op2"))
 
         elif kind == self.FCALL_NODE:
             return self.__run_fcall(expr)
@@ -166,14 +172,49 @@ class Interpreter(InterpreterBase):
 
             elif kind == "+":
                 return l + r
-            
-    def __run_if(self, statement):
+
+    def __run_stmts(self, statements): #~~~~~~~~~~~~~~~~~~~~
+        for stmts in statements:
+            kind = stmts.elem_type
+
+            if kind == self.VAR_DEF_NODE:
+                self.__run_vardef(stmts)
+            elif kind == "=":
+                self.__run_assign(stmts)
+            elif kind == self.FCALL_NODE:
+                self.__run_fcall(stmts)
+            elif kind == self.IF_NODE:
+                self.__run_if(stmts)
+            elif kind == self.WHILE_NODE:
+                pass  # add later
+            elif kind == self.RETURN_NODE:
+                pass  # add later
+            else:
+                super().error(ErrorType.NAME_ERROR, "unknown statement type")
+
+    def __run_if(self, statement): #~~~~~~~~~~~~~~~~~~~
+        # Expression must be boolean, else ERROR
+        condition = statement.get("condition")
+        #print(condition, ": this is the condition") ########################
+        condition = self.__eval_expr(condition) 
+        #print(condition, ": this is the condition type") ########################
+        
+        if type(condition) == bool:
+            print("lol it is a boolean")
+        else:
+            super().error(
+                ErrorType.TYPE_ERROR, "If condition is not a boolean. Must be a boolean")
+        
+        if condition:
+            self.__run_stmts(statement.get("statements"))
+        elif statement.get("else_statements"):
+            self.__run_stmts(statement.get("else_statements"))
+
+
+    #def __run_while(self, statement):
         # Expression must be boolean, else ERROR
 
-    def __run_while(self, statement):
-        # Expression must be boolean, else ERROR
-
-    def __run_return(self, statement):
+    #def __run_return(self, statement):
         # Must exit function
         # If there is a statement to return, must return by value
 
