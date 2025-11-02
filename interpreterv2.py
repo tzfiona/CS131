@@ -58,10 +58,10 @@ class Interpreter(InterpreterBase):
             elif kind == self.FCALL_NODE:
                 self.__run_fcall(statement)
             elif kind == self.IF_NODE:
-                print("YAYYYY its IF") ################
+                #print("YAYYYY its IF") ################
                 self.__run_if(statement)
             elif kind == self.WHILE_NODE:
-                print("YAYYYY its WHILE") ################
+                #print("YAYYYY its WHILE") ################
                 self.__run_while(statement)
             elif kind == self.RETURN_NODE:
                 print("YAYYYY its RETURN") ################
@@ -104,6 +104,19 @@ class Interpreter(InterpreterBase):
 
             return 0  # undefined behavior
         
+        if fcall_name == "inputs":
+            if len(args) > 1:
+                super().error(ErrorType.NAME_ERROR, "too many arguments for inputs")
+
+            if args:
+                super().output(str(self.__eval_expr(args[0])))
+
+            return str(super().get_input())
+
+
+
+
+
         if fcall_name in self.funcs:
             #print(fcall_name,"FUNC IS IN DICT") ############################
             funcdef = self.funcs[fcall_name]
@@ -130,8 +143,8 @@ class Interpreter(InterpreterBase):
               return returned
         
         super().error(
-                            ErrorType.NAME_ERROR,
-                            f"Function {fcall_name} was not found",
+                    ErrorType.NAME_ERROR,
+                    f"Function {fcall_name} was not found",
                         )
         #super().error(ErrorType.NAME_ERROR, "unknown function") given error message
 
@@ -142,7 +155,8 @@ class Interpreter(InterpreterBase):
             return expr.get("val")
         elif kind == self.BOOL_NODE: #~~~~~~~~~~~~~~
             val = expr.get("val")
-            return val == "true"
+            if isinstance(val, bool):
+                return val
         elif kind == "NIL_NODE": #~~~~~~~~~~~~~~
             return None
 
@@ -152,47 +166,63 @@ class Interpreter(InterpreterBase):
             value = self.env.get(var_name)
             if value is None:
                 super().error(ErrorType.NAME_ERROR, "variable not defined")
-
             return value
         
         elif kind in {"+", "-", "*", "/", "==", "!=", "<", "<=", ">", ">=", "&&", "||"}: #~~~~~~~~~~~~~~~~~~~~
             op1 = self.__eval_expr(expr.get("op1"))
             op2 = self.__eval_expr(expr.get("op2"))
 
-            if kind == "+":
-                return op1 + op2
             if kind == "==":
+                if op1 is None and op2 is None:
+                    return True
                 return op1 == op2
             if kind == "!=":
+                if op1 is None and op2 is None:
+                    return False
                 return op1 != op2
             
-            if not isinstance(op1, int) or not isinstance(op2, int):
-                print("error, should be INT only")
-            elif kind == "-":
-                return op1 - op2
-            elif kind == "*":
-                return op1 * op2
-            elif kind == "/":
-                return op1 // op2
-            elif kind == "<":
-                return op1 < op2
-            elif kind == ">":
-                return op1 > op2
-            elif kind == "<=":
-                return op1 <= op2
-            elif kind == ">=":
-                return op1 >= op2
-            elif kind == "NEG":
-                return -op1
+            if isinstance(op1, int) and isinstance(op2, int):
+                if kind == "+":
+                    return op1 + op2
+                elif kind == "-":
+                    return op1 - op2
+                elif kind == "*":
+                    return op1 * op2
+                elif kind == "/":
+                    return op1 // op2
+                elif kind == "<":
+                    return op1 < op2
+                elif kind == ">":
+                    return op1 > op2
+                elif kind == "<=":
+                    return op1 <= op2
+                elif kind == ">=":
+                    return op1 >= op2
+            else:
+                super().error(ErrorType.TYPE_ERROR, "cannot compare values of diff types")
             
-            if not isinstance(op1, bool) or not isinstance(op2, bool):
-                print("error, should be BOOL only")
-            elif kind == "&&":
-                return op1 and op2
-            elif kind == "||":
-                return op1 or op2
-            elif kind == "!":
+            if isinstance(op1, bool) and isinstance(op2, bool):
+                if kind == "&&":
+                    return op1 and op2
+                elif kind == "||":
+                    return op1 or op2
+            else:
+                print("we need bool") ################################
+                
+        elif kind == "neg": #~~~~~~~~~~~~~~~~~~~~
+            op1 = self.__eval_expr(expr.get("op1"))
+            if isinstance(op1, int):
+                return -op1
+            else:
+                print("we need int") ################################
+
+        elif kind == "!": #~~~~~~~~~~~~~~~~~~~~
+            op1 = self.__eval_expr(expr.get("op1"))
+            if isinstance(op1, bool):
                 return not op1
+            else:
+                super().error(ErrorType.TYPE_ERROR, "cannot use on non-boolean types")
+
 
         elif kind == self.FCALL_NODE:
             return self.__run_fcall(expr)
