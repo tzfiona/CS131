@@ -87,12 +87,13 @@ class Interpreter(InterpreterBase):
                 super().output(str(self.__eval_expr(args[0])))
             return int(super().get_input())
 
+        
         if fcall_name == "print":
             out = ""
             for arg in args:
-                out = self.__eval_expr(arg)
-                super().output(str(out))
-            return None  # undefined behavior
+                out += str(self.__eval_expr(arg))
+            super().output(out)
+            return 0  # undefined behavior
         
         if fcall_name == "inputs":
             if len(args) > 1:
