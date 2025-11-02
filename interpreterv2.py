@@ -4,7 +4,6 @@ from intbase import ErrorType
 
 generate_image = False
 
-
 class Environment:
     def __init__(self):
         self.env = {}
@@ -58,14 +57,11 @@ class Interpreter(InterpreterBase):
             elif kind == self.FCALL_NODE:
                 self.__run_fcall(statement)
             elif kind == self.IF_NODE:
-                #print("YAYYYY its IF") ################
                 self.__run_if(statement)
             elif kind == self.WHILE_NODE:
-                #print("YAYYYY its WHILE") ################
                 self.__run_while(statement)
             elif kind == self.RETURN_NODE:
-                print("YAYYYY its RETURN") ################
-                #self.__run_return(statement)
+                self.__run_return(statement)
             else:
                 super().error(ErrorType.NAME_ERROR, "unknown kind detected") #idk if this we required
 
@@ -113,10 +109,6 @@ class Interpreter(InterpreterBase):
 
             return str(super().get_input())
 
-
-
-
-
         if fcall_name in self.funcs:
             #print(fcall_name,"FUNC IS IN DICT") ############################
             funcdef = self.funcs[fcall_name]
@@ -124,6 +116,17 @@ class Interpreter(InterpreterBase):
 
             prev_env = self.env
             self.env = Environment() #create new env since we're going into a new func
+
+            parameter = funcdef.get("args")
+            if len(args) != len(parameter):
+                super().error(ErrorType.NAME_ERROR, f"incorrect # of arguements")
+
+
+            for x, y in zip(parameter, args):
+                val = self.__eval_expr(y)
+                self.env.fdef(x.get("name"))
+                self.env.set(x.get("name"), val)
+ 
 
             for statement in funcdef.get("statements"):
               kind = statement.elem_type
@@ -138,9 +141,9 @@ class Interpreter(InterpreterBase):
               elif kind == "return":
                 returned = self.__eval_expr(statement.get("expression"))
                 break
-              
-              self.env = prev_env
-              return returned
+
+            self.env = prev_env
+            return returned
         
         super().error(
                     ErrorType.NAME_ERROR,
@@ -157,7 +160,7 @@ class Interpreter(InterpreterBase):
             val = expr.get("val")
             if isinstance(val, bool):
                 return val
-        elif kind == "NIL_NODE": #~~~~~~~~~~~~~~
+        elif kind == self.NIL_NODE: #~~~~~~~~~~~~~~
             return None
 
         elif kind == self.QUALIFIED_NAME_NODE:
@@ -175,10 +178,14 @@ class Interpreter(InterpreterBase):
             if kind == "==":
                 if op1 is None and op2 is None:
                     return True
+                if type(op1) != type(op2):
+                    return False
                 return op1 == op2
             if kind == "!=":
                 if op1 is None and op2 is None:
                     return False
+                if type(op1) != type(op2):
+                    return True
                 return op1 != op2
             
             if isinstance(op1, int) and isinstance(op2, int):
@@ -198,23 +205,35 @@ class Interpreter(InterpreterBase):
                     return op1 <= op2
                 elif kind == ">=":
                     return op1 >= op2
+                else:
+                    super().error(ErrorType.TYPE_ERROR, "cannot use int types")
             else:
                 super().error(ErrorType.TYPE_ERROR, "cannot compare values of diff types")
+
+            if isinstance(op1, str) and isinstance(op2, str):
+                if kind == "+":
+                    return op1 + op2
+                else:
+                    super().error(ErrorType.TYPE_ERROR, "cannot use str types")
+            else:
+                    super().error(ErrorType.TYPE_ERROR, "cannot use str types")
             
             if isinstance(op1, bool) and isinstance(op2, bool):
                 if kind == "&&":
                     return op1 and op2
                 elif kind == "||":
                     return op1 or op2
+                else:
+                    super().error(ErrorType.TYPE_ERROR, "cannot use on non-boolean types")
             else:
-                print("we need bool") ################################
+                    super().error(ErrorType.TYPE_ERROR, "cannot use bool types")
                 
         elif kind == "neg": #~~~~~~~~~~~~~~~~~~~~
             op1 = self.__eval_expr(expr.get("op1"))
             if isinstance(op1, int):
                 return -op1
             else:
-                print("we need int") ################################
+                super().error(ErrorType.TYPE_ERROR, "cannot use on non-int types")
 
         elif kind == "!": #~~~~~~~~~~~~~~~~~~~~
             op1 = self.__eval_expr(expr.get("op1"))
@@ -222,7 +241,6 @@ class Interpreter(InterpreterBase):
                 return not op1
             else:
                 super().error(ErrorType.TYPE_ERROR, "cannot use on non-boolean types")
-
 
         elif kind == self.FCALL_NODE:
             return self.__run_fcall(expr)
@@ -252,20 +270,22 @@ class Interpreter(InterpreterBase):
             elif kind == self.FCALL_NODE:
                 self.__run_fcall(stmts)
             elif kind == self.IF_NODE:
-                self.__run_if(stmts)
+                returned = self.__run_if(stmts)
+                if returned is not None:
+                    return returned
             elif kind == self.WHILE_NODE:
-                pass  # add later
+                returned = self.__run_while(stmts)
+                if returned is not None:
+                    return returned
             elif kind == self.RETURN_NODE:
-                pass  # add later
+                return self.__run_return(stmts)
             else:
                 super().error(ErrorType.NAME_ERROR, "unknown statement type")
+        return None
 
     def __run_if(self, statement): #~~~~~~~~~~~~~~~~~~~
-        # Expression must be boolean, else ERROR
         condition = statement.get("condition")
-        #print(condition, ": this is the condition") ########################
         condition = self.__eval_expr(condition) 
-        #print(condition, ": this is the condition type") ########################
         
         if not isinstance(condition, bool):
             super().error(
@@ -275,15 +295,12 @@ class Interpreter(InterpreterBase):
             self.__run_stmts(statement.get("statements"))
         elif statement.get("else_statements"):
             self.__run_stmts(statement.get("else_statements"))
-
+        return None
 
     def __run_while(self, statement): #~~~~~~~~~~~~~~~~~~~
-        # Expression must be boolean, else ERROR
         while True:
             condition = statement.get("condition")
-            #print(condition, ": this is the condition") ########################
             condition = self.__eval_expr(condition) 
-            #print(condition, ": this is the condition type") ########################
 
             if not isinstance(condition, bool):
                 super().error(
@@ -293,14 +310,12 @@ class Interpreter(InterpreterBase):
                 self.__run_stmts(statement.get("statements"))
             else:
                 break
+        return None
 
-
-    #def __run_return(self, statement): #~~~~~~~~~~~~~~~~~~~
-        # Must exit function
-        # If there is a statement to return, must return by value
-
-
-
+    def __run_return(self, statement): #~~~~~~~~~~~~~~~~~~~
+        if statement.get("expression"):
+            return self.__eval_expr(statement.get("expression"))
+        return None
 
 
 def main():
