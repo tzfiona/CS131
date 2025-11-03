@@ -4,7 +4,7 @@ from intbase import ErrorType
 
 generate_image = False
 
-class Environment:
+class Environment: 
     def __init__(self):
         self.env = [{}]
 
@@ -51,12 +51,12 @@ class Interpreter(InterpreterBase):
         ast = parse_program(program, generate_image)
 
         for func in ast.get("functions"):
-            self.funcs[func.get("name")] = func
+            self.funcs[func.get("name"), len(func.get("args"))] = func #store key so we can recognize functions w the same name but diff num of params
 
-        if "main" not in self.funcs:
+        if ("main", 0) not in self.funcs:
             super().error(ErrorType.NAME_ERROR, "main function not found")
 
-        for statement in self.funcs["main"].get("statements"): # @func def node here
+        for statement in self.funcs[("main",0)].get("statements"): # @func def node here
             kind = statement.elem_type
 
             if kind == self.VAR_DEF_NODE:
@@ -71,6 +71,7 @@ class Interpreter(InterpreterBase):
                 self.__run_while(statement)
             elif kind == self.RETURN_NODE:
                 self.__run_return(statement)
+                return
             else:
                 super().error(ErrorType.NAME_ERROR, "unknown kind detected") #idk if this we required
 
@@ -97,7 +98,6 @@ class Interpreter(InterpreterBase):
                 super().output(str(self.__eval_expr(args[0])))
             return int(super().get_input())
 
-        
         if fcall_name == "print":
             out = ""
             for arg in args:
@@ -108,10 +108,12 @@ class Interpreter(InterpreterBase):
                 elif arg == "False":
                     arg = "false"
                     out += arg
+                elif arg is None:
+                    out += "nil"
                 else:
                     out += str(arg)                
             super().output(out)
-            return 0  # undefined behavior
+            return None 
         
         if fcall_name == "inputs":
             if len(args) > 1:
@@ -120,10 +122,10 @@ class Interpreter(InterpreterBase):
                 super().output(str(self.__eval_expr(args[0])))
             return str(super().get_input())
 
-        if fcall_name in self.funcs:
+        if (fcall_name, len(args)) in self.funcs:
             returned = None
             #print(fcall_name,"FUNC IS IN DICT") ############################
-            funcdef = self.funcs[fcall_name]
+            funcdef = self.funcs[(fcall_name, len(args))]
             #print(funcdef, "CHECKKKKK") ############################
             parameter = funcdef.get("args")
 
@@ -134,8 +136,13 @@ class Interpreter(InterpreterBase):
 
             for x, y in zip(parameter, args):
                 val = self.__eval_expr(y)
-                self.env.fdef(x.get("name"))
-                self.env.set(x.get("name"), val)
+                params = x.get("name")
+                curr_env = self.env.env[-1]
+                if params not in curr_env: #this only searches in the current environment, not the entire env!
+                    self.env.fdef(params)
+                    curr_env[params] = val
+                else:
+                    super().error(ErrorType.NAME_ERROR, "")
  
             for statement in funcdef.get("statements"):
                 kind = statement.elem_type
@@ -178,7 +185,7 @@ class Interpreter(InterpreterBase):
         elif kind == self.QUALIFIED_NAME_NODE:
             var_name = expr.get("name")
             value = self.env.get(var_name)
-            if value is None:
+            if not self.env.exists(var_name):
                 super().error(ErrorType.NAME_ERROR, "variable not defined")
             return value
         
@@ -205,7 +212,7 @@ class Interpreter(InterpreterBase):
                         return op1 + op2
                     else:
                         super().error(ErrorType.TYPE_ERROR, "only + can be used with str")
-                if isinstance(op1, int) and isinstance(op2, int):
+                elif (type(op1) is int) and (type(op2) is int): #for some reason if i use "if isinstance(op1, int) and isinstance(op2, int):" the bool always slips thru
                     if kind == "+":
                         return op1 + op2
                     elif kind == "-":
@@ -219,7 +226,7 @@ class Interpreter(InterpreterBase):
                 else:
                     super().error(ErrorType.TYPE_ERROR, "only int and str allowed")
             elif kind in {"<", "<=", ">", ">="}:
-                if isinstance(op1, int) and isinstance(op2, int):
+                if (type(op1) is int) and (type(op2) is int): #same as prev
                     if kind == "<":
                         return op1 < op2
                     elif kind == ">":
