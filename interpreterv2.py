@@ -6,37 +6,27 @@ generate_image = False
 
 class Environment: 
     def __init__(self):
-        self.env = [{}]
+        self.env = {}
 
     def fdef(self, varname):
         if self.exists(varname):
             return False
-        self.env[-1][varname] = None
+        self.env[varname] = None
         return True
 
     def exists(self, varname):
-        for i in reversed(self.env):
-            if varname in i:
-                return True
-        return False
+        return varname in self.env
 
     def get(self, varname):
-        for i in reversed(self.env):
-            if varname in i:
-                return i[varname]
+        if varname in self.env:
+            return self.env[varname]
         return None
     
     def set(self, varname, value):
-        for i in reversed(self.env):
-            if varname in i:
-                i[varname] = value
-                return True
-        return False
-
-    def pop(self):
-        self.env.pop()
-    def push(self):
-        self.env.append({})
+        if not self.exists(varname):
+            return False
+        self.env[varname] = value
+        return True
 
 
 class Interpreter(InterpreterBase):
@@ -45,7 +35,6 @@ class Interpreter(InterpreterBase):
 
         self.funcs = {}  # {name:element,}
         self.env = Environment()
-        self.ops = {"-", "+"}
 
     def run(self, program):
         ast = parse_program(program, generate_image)
@@ -56,7 +45,7 @@ class Interpreter(InterpreterBase):
         if ("main", 0) not in self.funcs:
             super().error(ErrorType.NAME_ERROR, "main function not found")
 
-        for statement in self.funcs[("main",0)].get("statements"): # @func def node here
+        for statement in self.funcs[("main",0)].get("statements"): 
             kind = statement.elem_type
 
             if kind == self.VAR_DEF_NODE:
@@ -71,7 +60,7 @@ class Interpreter(InterpreterBase):
                 self.__run_while(statement)
             elif kind == self.RETURN_NODE:
                 self.__run_return(statement)
-                return
+                return None
             else:
                 super().error(ErrorType.NAME_ERROR, "unknown kind detected") #idk if this we required
 
@@ -132,17 +121,16 @@ class Interpreter(InterpreterBase):
             if len(args) != len(parameter):
                 super().error(ErrorType.NAME_ERROR, f"incorrect # of arguements")
 
-            self.env.push()
+            prev_env = self.env
+            all_args = []
+            for b in args:
+                all_args.append(self.__eval_expr(b))
+            self.env = Environment()
 
-            for x, y in zip(parameter, args):
-                val = self.__eval_expr(y)
+            for x, y in zip(parameter, all_args):
                 params = x.get("name")
-                curr_env = self.env.env[-1]
-                if params not in curr_env: #this only searches in the current environment, not the entire env!
-                    self.env.fdef(params)
-                    curr_env[params] = val
-                else:
-                    super().error(ErrorType.NAME_ERROR, "")
+                self.env.fdef(params)
+                self.env.env[params] = y
  
             for statement in funcdef.get("statements"):
                 kind = statement.elem_type
@@ -163,10 +151,10 @@ class Interpreter(InterpreterBase):
                     if returned is not None:
                         break
                 elif kind == self.RETURN_NODE:
-                    returned = self.__eval_expr(statement.get("expression"))
+                    returned = self.__run_return(statement)
                     break
 
-            self.env.pop()
+            self.env = prev_env
             return returned
 
         super().error(ErrorType.NAME_ERROR, "unknown function") 
@@ -333,7 +321,7 @@ class Interpreter(InterpreterBase):
         return None
 
     def __run_return(self, statement): #~~~~~~~~~~~~~~~~~~~
-        if statement.get("expression"):
+        if statement.get("expression") != None:
             return self.__eval_expr(statement.get("expression"))
         return None
 
