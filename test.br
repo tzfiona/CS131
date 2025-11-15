@@ -1,13 +1,12 @@
-def foo() { 
- print("hello");
-}
 
-def bar() {
-  return;
-}
 
 def main() {
-   var val;
-   val = nil;
-   if (foo() == val && bar() == nil) { print("this should print!"); }
+  var cats;
+  cats = "wajksfhkjh";
+  print("cats = ", cats);
+
+  var cati;
+  cati = "888";
+  print("cati = ", cati);
+
 }

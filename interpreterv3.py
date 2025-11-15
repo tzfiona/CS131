@@ -8,6 +8,8 @@ class Type(enum.Enum):
     INT = 1
     STRING = 2
     BOOL = 3
+    OBJECT = 4
+    VOID = 5
 
 
 class Value:
@@ -82,7 +84,14 @@ class Interpreter(InterpreterBase):
     def __create_function_table(self, ast):
         self.funcs = {}
         for func in ast.get("functions"):
+            self.name_types(func.get("name"), is_function=True)
+            #print(func_name, "-----") ###################################
+            
+            for i in func.get("args"):
+                self.name_types(i.get("name"), is_function=False)
+            
             self.funcs[(func.get("name"), len(func.get("args")))] = func
+            #print(func) ###################################
 
     def __get_function(self, name, num_params=0):
         if (name, num_params) not in self.funcs:
@@ -91,9 +100,26 @@ class Interpreter(InterpreterBase):
 
     def __run_vardef(self, statement):
         name = statement.get("name")
-
+        type_of_name = self.name_types(name, is_function=False)
+        #print("~test~", name, "=====", type_of_name) ###################################
         if not self.env.fdef(name):
             super().error(ErrorType.NAME_ERROR, "variable already defined")
+
+        variable_type = self.name_types(name, is_function=False)
+        if variable_type == Type.INT:
+            default_value = Value(Type.INT, 0)
+        elif variable_type == Type.STRING:
+            default_value = Value(Type.STRING, "")
+        elif variable_type == Type.BOOL:
+            default_value = Value(Type.BOOL, False)
+        elif variable_type == Type.OBJECT:
+            default_value = Value(Type.NIL, None) # nil?
+        else:
+            super().error(ErrorType.TYPE_ERROR, "invalid variable type")
+        
+        #print("~test~", variable_type, "HIIIII") ###################################
+        
+        self.env.set(name, default_value)
 
     def __run_assign(self, statement):
         name = statement.get("var")
@@ -312,6 +338,32 @@ class Interpreter(InterpreterBase):
 
         raise Exception("should not get here!")
 
+    def name_types(self, name, is_function=False): ###
+        if name == "main":
+            return Type.VOID
+    
+        if name[-1] == "i":
+            return Type.INT
+        elif name[-1] == "s":
+            return Type.STRING
+        elif name[-1] == "b":
+            return Type.BOOL
+        elif name[-1] == "o":
+            return Type.OBJECT
+        elif name[-1] == "v":
+            if is_function:
+                return Type.VOID
+            if not is_function:
+                super().error(ErrorType.TYPE_ERROR, "has to be function to have void type")
+        else:
+            if is_function:
+                super().error(ErrorType.TYPE_ERROR, "function's name doesn't end w a valid type letter (i/s/b/o/v)")
+            if not is_function:
+                super().error(ErrorType.TYPE_ERROR, "parameter's name doesn't end w a valid type letter (i/s/b/o)")
+        
+        if not name:
+            print("there is no name")
+            super().error(ErrorType.TYPE_ERROR, "no name")
 
 def main():
     interpreter = Interpreter()
