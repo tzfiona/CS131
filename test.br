@@ -1,64 +1,46 @@
-def getValuei() {
-  return 100;
-}
 
-def getValuei(ai) {
-  return ai + 50;
-}
-
-def getValuei(ab) {
-  if (ab) {
-    return 200;
-  } else {
-    return 300;
-  }
-}
-
-def getValuei(ao, bs) {
-  return 400;
-}
-
-def getValuei(as, bi) {
-  return bi + 10;
-}
 
 def main() {
-  var resulti;
-  
-  print("-----100-----");
-  resulti = getValuei();
-  print(resulti);
+  var uo; 
+  uo = @;
+  var ao;
+  ao = @;
 
-  print("-----75-----");
-  resulti = getValuei(25);
-  print(resulti);
-  
-  print("-----200-----");
-  resulti = getValuei(true);
-  print(resulti);
-  
-  print("-----300-----");
-  resulti = getValuei(false);
-  print(resulti);
-  
-  print("-----400-----");
-  var o;
-  o = @;
-  resulti = getValuei(o, "test");
-  print(resulti);
-  
-  print("-----100-----");
-  resulti = getValuei("hello", 90);
-  print(resulti);
+  uo.addresso = ao;
+  uo.addresso.zipi = 90024;
+  print(uo.addresso.zipi);  /* 90024 */
+
 }
 
 /*
+def main() {
+  var o;
+  o = @;
+  var io;
+  io = @;
+  var nested1o;
+  nested1o = @;
+  var nested2o;
+  nested2o = @;
+  print("~created~");
+
+
+  
+  o.io = io;
+  print("~1~");
+  o.io.nested1o = nested1o;
+  print("~2~");
+  o.io.nested1o.nested2o = nested2o;
+  print("~3~");
+  o.io.nested1o.nested2o.xi = 5;
+  print("~4~");
+
+  print(o.io.nested1o.nested2o.xi);
+}
+*/
+
+/*
 *OUT*
-100
-75
-200
-300
-400
-100
+5
 *OUT*
 */ 

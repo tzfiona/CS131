@@ -357,6 +357,9 @@ class Interpreter(InterpreterBase):
 
         if kind == self.NIL_NODE:
             return Value(Type.NIL, None)
+        
+        if kind == "@": 
+            return Value(Type.OBJECT, {})
 
         if kind == self.QUALIFIED_NAME_NODE:
             var_name = expr.get("name")
