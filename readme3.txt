@@ -10,4 +10,4 @@ v3/tests/test_function_object_reference.br
 v3/tests/test_function_overloading_expression.br 
 v3/tests/test_nested_object.br 
 v3/tests/test_pass_by_reference_all_types.br 
-v3/tests/test_value_vs_ref.br 
+v3/tests/test_value_vs_ref.br ----------------------------------PASSED

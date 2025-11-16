@@ -171,8 +171,24 @@ class Interpreter(InterpreterBase):
 
     def __run_assign(self, statement):
         name = statement.get("var")
-
         value = self.__eval_expr(statement.get("expression"))
+
+        #print("~confirm~ the name is:", name)
+        #print("~confirm~ the value is:", value)
+
+        if name in self.ref_params:
+            #print("YESSS: (", name, ") is in:", self.ref_params) 
+            main_env, real = self.ref_params[name]
+            #print("~confirm~ the real variable is:", real)
+            #print("~confirm~ main_env:", main_env)
+
+            for block in main_env[-2]:
+                #print("~confirm~ checking block:", block.keys())
+                if real in block:
+                    #print("YAYY")
+                    block[real] = value 
+                    return
+
         if not self.env.set(name, value):
             super().error(ErrorType.NAME_ERROR, "variable not defined")
 
@@ -209,6 +225,8 @@ class Interpreter(InterpreterBase):
 
     def __run_fcall(self, func_call_ast):
         fcall_name, args = func_call_ast.get("name"), func_call_ast.get("args")
+        #print("~confirm~ the fcall_name is:", fcall_name) #####
+        #print("~confirm~ the args is:", args) #####
 
         if fcall_name == "inputi" or fcall_name == "inputs":
             return self.__handle_input(fcall_name, args)
@@ -218,14 +236,57 @@ class Interpreter(InterpreterBase):
 
         func_def = self.__get_function(fcall_name, len(args))
 
-        formal_args = [a.get("name") for a in func_def.get("args")]
-        actual_args = [self.__eval_expr(a) for a in args]
+        formal_args = func_def.get("args") #[a.get("name") for a in func_def.get("args")]
+        #print("~confirm~ the formal_args is:",formal_args) #####
+        
+        #actual_args = [self.__eval_expr(a) for a in args]
+        #print("~confirm~ the actual_args is:",actual_args) #####
+
+        self.ref_params = {}
+        old_ref_params = self.ref_params.copy()
+        new_ref_params = {}
+
+        param_info = []
+
+        for formal, actual in zip(formal_args, args):
+            #print()
+            #print("~confirm~ formal:",formal)
+            #print("~confirm~ actual:",actual)
+
+            formal_name = formal.get("name")
+            #print("~confirm~ formal_name is:", formal_name)
+            is_ref = formal.get("ref")
+            #print("~confirm~ is_ref:", is_ref)
+            #print()
+
+            if is_ref:
+                #print("its ref!")
+                var_name = actual.get("name")
+                #print("~confirm~ var_name is:",var_name)
+
+                new_ref_params[formal_name] = (self.env.env, var_name) 
+                param_info.append((formal_name, True, var_name))
+                #print("~confirm~ param_info is:", param_info)
+            else:
+                #print("its not ref")
+                actual_val = self.__eval_expr(actual)
+                #print("~confirm~ actual_value is:", actual_value)
+                param_info.append((formal_name, False, actual_val))
+                #print("~confirm~ param_info is:", param_info)
 
         self.env.enter_func()
-        for formal, actual in zip(formal_args, actual_args):
-            self.env.fdef(formal)
-            self.env.set(formal, actual)
+        self.ref_params = new_ref_params
+
+        for formal_name, is_ref, value in param_info:
+            if is_ref:
+                pass
+            else:
+                self.env.fdef(formal_name)
+                self.env.set(formal_name, value)
+
         res, _ = self.__run_statements(func_def.get("statements"))
+
+        self.ref_params = old_ref_params
         self.env.exit_func()
 
         return res
@@ -363,6 +424,12 @@ class Interpreter(InterpreterBase):
 
         if kind == self.QUALIFIED_NAME_NODE:
             var_name = expr.get("name")
+            #print("???", var_name)
+
+            if var_name in self.ref_params:
+                og_env, real = self.ref_params[var_name]
+                return og_env.get(real) 
+            
 
             if not self.env.exists(var_name):
                 super().error(ErrorType.NAME_ERROR, "variable not defined")
