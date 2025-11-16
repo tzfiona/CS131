@@ -1,23 +1,64 @@
-def main() {
-  
-  print("-----test2-----");
-  var cati;
-  cati = 3;
-  print("cati = ", cati);       /* cati = 3 */
+def getValuei() {
+  return 100;
+}
 
+def getValuei(ai) {
+  return ai + 50;
+}
 
-  print("-----test3-----");
-  if (true) {
-    bvar i;
-    i = 10;
-    print(i);
+def getValuei(ab) {
+  if (ab) {
+    return 200;
+  } else {
+    return 300;
   }
-  print(i);
+}
+
+def getValuei(ao, bs) {
+  return 400;
+}
+
+def getValuei(as, bi) {
+  return bi + 10;
+}
+
+def main() {
+  var resulti;
+  
+  print("-----100-----");
+  resulti = getValuei();
+  print(resulti);
+
+  print("-----75-----");
+  resulti = getValuei(25);
+  print(resulti);
+  
+  print("-----200-----");
+  resulti = getValuei(true);
+  print(resulti);
+  
+  print("-----300-----");
+  resulti = getValuei(false);
+  print(resulti);
+  
+  print("-----400-----");
+  var o;
+  o = @;
+  resulti = getValuei(o, "test");
+  print(resulti);
+  
+  print("-----100-----");
+  resulti = getValuei("hello", 90);
+  print(resulti);
 }
 
 /*
 *OUT*
-10
-ErrorType.NAME_ERROR
+100
+75
+200
+300
+400
+100
 *OUT*
 */ 

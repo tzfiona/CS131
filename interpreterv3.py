@@ -98,13 +98,23 @@ class Interpreter(InterpreterBase):
 
     def __create_function_table(self, ast):
         self.funcs = {}
+        self.func_types = {}
+
         for func in ast.get("functions"):
-            self.name_types(func.get("name"), is_function=True)
+            func_name_types = self.name_types(func.get("name"), is_function=True)
             #print(func_name, "-----") ###################################
             
+            param_types = []
             for i in func.get("args"):
-                self.name_types(i.get("name"), is_function=False)
+                param_name_types = self.name_types(i.get("name"), is_function=False)
+                param_types.append(param_name_types)
             
+            signatures = (func.get("name"), tuple(param_types))
+            if signatures in self.funcs:
+                super().error(ErrorType.NAME_ERROR, "two+ functions are found with the same name+type signature")
+
+            self.funcs[signatures] = func
+            self.func_types[signatures] = func_name_types
             self.funcs[(func.get("name"), len(func.get("args")))] = func
             #print(func) ###################################
 
