@@ -1,12 +1,23 @@
-
-
 def main() {
-  var cats;
-  cats = "wajksfhkjh";
-  print("cats = ", cats);
-
+  
+  print("-----test2-----");
   var cati;
-  cati = "888";
-  print("cati = ", cati);
+  cati = 3;
+  print("cati = ", cati);       /* cati = 3 */
 
+
+  print("-----test3-----");
+  if (true) {
+    bvar i;
+    i = 10;
+    print(i);
+  }
+  print(i);
 }
+
+/*
+*OUT*
+10
+ErrorType.NAME_ERROR
+*OUT*
+*/ 

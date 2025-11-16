@@ -40,13 +40,28 @@ class Environment:
 
     # define new variable at function scope
     def fdef(self, varname):
-        if self.exists(varname):
+        if self.exists_in_func(varname):
             return False
         top_env = self.env[-1]
         top_env[0][varname] = Value()
         return True
 
-    def exists(self, varname):
+    #define new variable at block scope
+    def bdef(self, varname):
+        if self.exists_in_func(varname):
+            return False
+        top_env = self.env[-1]
+        top_env[-1][varname] = Value()
+        return True
+    
+    #check if exists in current function scope
+    def exists_in_func(self, varname):
+        for block in self.env[-1]:
+            if varname in block:
+                return True
+        return False
+
+    def exists(self, varname): #check if exists in current scope
         for block in self.env[-1]:
             if varname in block:
                 return True
@@ -100,12 +115,12 @@ class Interpreter(InterpreterBase):
 
     def __run_vardef(self, statement):
         name = statement.get("name")
-        type_of_name = self.name_types(name, is_function=False)
-        #print("~test~", name, "=====", type_of_name) ###################################
         if not self.env.fdef(name):
             super().error(ErrorType.NAME_ERROR, "variable already defined")
 
         variable_type = self.name_types(name, is_function=False)
+        #print("~test~", name, "=====", variable_type) ###################################
+
         if variable_type == Type.INT:
             default_value = Value(Type.INT, 0)
         elif variable_type == Type.STRING:
@@ -117,8 +132,31 @@ class Interpreter(InterpreterBase):
         else:
             super().error(ErrorType.TYPE_ERROR, "invalid variable type")
         
-        #print("~test~", variable_type, "HIIIII") ###################################
+        #print("~test~", name, "=====", default_value) ###################################
+
+        self.env.set(name, default_value)
+
+    def __run_bvardef(self, statement):
+        name = statement.get("name")
+        if not self.env.bdef(name):
+            super().error(ErrorType.NAME_ERROR, "variable already defined")
         
+        variable_type = self.name_types(name, is_function=False)
+        #print("~test~", name, "=====", variable_type) ###################################
+
+        if variable_type == Type.INT:
+            default_value = Value(Type.INT, 0)
+        elif variable_type == Type.STRING:
+            default_value = Value(Type.STRING, "")
+        elif variable_type == Type.BOOL:
+            default_value = Value(Type.BOOL, False)
+        elif variable_type == Type.OBJECT:
+            default_value = Value(Type.NIL, None) # nil?
+        else:
+            super().error(ErrorType.TYPE_ERROR, "invalid variable type")
+        
+        #print("~test~", name, "=====", default_value) ###################################
+
         self.env.set(name, default_value)
 
     def __run_assign(self, statement):
@@ -235,6 +273,8 @@ class Interpreter(InterpreterBase):
 
             if kind == self.VAR_DEF_NODE:
                 self.__run_vardef(statement)
+            elif kind == "bvardef":  # Add this
+                self.__run_bvardef(statement)
             elif kind == "=":
                 self.__run_assign(statement)
             elif kind == self.FCALL_NODE:

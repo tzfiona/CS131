@@ -1,4 +1,4 @@
-v3/fails/test_bvar_scope_error.br
+v3/fails/test_bvar_scope_error.br ------------------------------PASSED
 v3/fails/test_formal_param_void_type.br ------------------------PASSED
 v3/fails/test_function_same_signature_different_params.br
 v3/fails/test_invalid_formal_params.br -------------------------PASSED
