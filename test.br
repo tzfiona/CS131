@@ -1,46 +1,42 @@
-
-
 def main() {
-  var uo; 
-  uo = @;
-  var ao;
-  ao = @;
-
-  uo.addresso = ao;
-  uo.addresso.zipi = 90024;
-  print(uo.addresso.zipi);  /* 90024 */
-
+    var ai;
+    var bs;
+    var cb;
+    
+    ai = 42;
+    bs = "hello";
+    cb = true;
+    
+    /* Testing int conversions */
+    print("Testing int conversions:");
+    print(int(ai));      /* should print 42 */
+    print(int(cb));      /* should print 1 */
+    
+    /* Testing string conversions */
+    print("Testing string conversions:");
+    print(str(ai));   /* should print "42" */
+    print(str(bs));   /* should print "hello" */
+    print(str(cb));   /* should print "true" */
+    
+    /* Testing bool conversions */
+    print("Testing bool conversions:");
+    print(bool(ai));     /* should print true */
+    print(bool(bs));     /* should print true */
+    print(bool(cb));     /* should print true */
 }
-
-/*
-def main() {
-  var o;
-  o = @;
-  var io;
-  io = @;
-  var nested1o;
-  nested1o = @;
-  var nested2o;
-  nested2o = @;
-  print("~created~");
-
-
-  
-  o.io = io;
-  print("~1~");
-  o.io.nested1o = nested1o;
-  print("~2~");
-  o.io.nested1o.nested2o = nested2o;
-  print("~3~");
-  o.io.nested1o.nested2o.xi = 5;
-  print("~4~");
-
-  print(o.io.nested1o.nested2o.xi);
-}
-*/
 
 /*
 *OUT*
-5
+Testing int conversions:
+42
+1
+Testing string conversions:
+42
+hello
+true
+Testing bool conversions:
+true
+true
+true
 *OUT*
 */ 

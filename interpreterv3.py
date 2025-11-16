@@ -389,6 +389,9 @@ class Interpreter(InterpreterBase):
 
             super().error(ErrorType.TYPE_ERROR, "cannot apply NOT to non-boolean")
 
+        if kind == self.CONVERT_NODE:
+            return self.__conversion(expr) 
+
         raise Exception("should not get here!")
 
     def name_types(self, name, is_function=False): ###
@@ -417,6 +420,54 @@ class Interpreter(InterpreterBase):
         if not name:
             print("there is no name")
             super().error(ErrorType.TYPE_ERROR, "no name")
+
+    def __conversion(self, convert):
+        type = convert.get('to_type')
+        value = self.__eval_expr(convert.get("expr"))
+        #print(type) ###
+        #rint(value) ###
+
+        if type == "int":
+            if value.t == Type.INT:
+                return value
+            elif value.t == Type.STRING:
+                if value.v.isdigit():
+                    return Value(Type.INT, int(value.v))
+                else:
+                    super().error(ErrorType.TYPE_ERROR, "invalid parses")
+            elif value.t == Type.BOOL:
+                return Value(Type.INT, int(value.v))
+            else:
+                super().error(ErrorType.TYPE_ERROR, "no obj -> int")
+        elif type == "str":
+            if value.t == Type.STRING:
+                return value
+            elif value.t == Type.INT:
+                return Value(Type.STRING, str(value.v))
+            elif value.t == Type.BOOL:
+                if value.v:
+                    return Value(Type.STRING, "true")
+                else:
+                    return Value(Type.STRING, "false")
+            else:
+                super().error(ErrorType.TYPE_ERROR, "no obj -> str")
+        elif type == "bool":
+            if value.t == Type.BOOL:
+                return value
+            elif value.t == Type.INT:
+                if value.v != 0:
+                    return Value(Type.BOOL, True)
+                else:
+                    return Value(Type.BOOL, False)
+            elif value.t == Type.STRING:
+                if value.v != "":
+                    return Value(Type.BOOL, True)
+                else:
+                    return Value(Type.BOOL, False)
+            else:
+                super().error(ErrorType.TYPE_ERROR, "no obj -> bool")
+
+
 
 def main():
     interpreter = Interpreter()
