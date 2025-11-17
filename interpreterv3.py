@@ -179,27 +179,39 @@ class Interpreter(InterpreterBase):
         #print("~confirm~ the name is:", name)
         #print("~confirm~ the value is:", value)
 
+        if "." in name:
+            #print("THERE IS . IN NAME")
+            self.__object_assign(name, value)
+            return 
+
         if name in self.ref_params:
             #print("YESSS: (", name, ") is in:", self.ref_params) 
             main_env, real = self.ref_params[name]
             #print("~confirm~ the real variable is:", real)
             #print("~confirm~ main_env:", main_env)
 
-            for block in main_env[-2]:
+            exp_type = self.name_types(real, is_function=False)
+            if value.t != exp_type:
+                super().error(ErrorType.TYPE_ERROR, "types don't mach")
+
+            for i in main_env[-2]:
                 #print("~confirm~ checking block:", block.keys())
-                if real in block:
+                if real in i:
                     #print("YAYY")
-                    block[real] = value 
+                    i[real] = value 
+                    self.env.set(name, value)
                     return
+            return
                 
         if not self.env.set(name, value) and "." not in name: 
             print("HERE NOW") 
             super().error(ErrorType.NAME_ERROR, "variable not defined")
 
-        if "." in name:
-            #print("THERE IS . IN NAME")
-            self.__object_assign(name, value)
-            return 
+        exp_type = self.name_types(name, is_function=False)
+        if value.t != exp_type:
+            super().error(ErrorType.TYPE_ERROR, "types don't mach")
+        
+        self.env.set(name, value)
 
     def __handle_input(self, fcall_name, args):
         """Handle inputi and inputs function calls"""
@@ -234,8 +246,8 @@ class Interpreter(InterpreterBase):
 
     def __run_fcall(self, func_call_ast):
         fcall_name, args = func_call_ast.get("name"), func_call_ast.get("args")
-        #print("~confirm~ the function call_name is:", fcall_name) 
-        #print("~confirm~ the args is:", args) 
+        print("~confirm~ the function call_name is:", fcall_name) 
+        print("~confirm~ the args is:", args) 
 
         if fcall_name == "inputi" or fcall_name == "inputs":
             return self.__handle_input(fcall_name, args)
@@ -246,7 +258,7 @@ class Interpreter(InterpreterBase):
         func_def = self.__get_function(fcall_name, len(args))
 
         formal_args = func_def.get("args") #[a.get("name") for a in func_def.get("args")]
-        #print("~confirm~ the formal_args is:",formal_args) 
+        print("~confirm~ the formal_args is:",formal_args) 
         
         #actual_args = [self.__eval_expr(a) for a in args]
         #print("~confirm~ the actual_args is:",actual_args) 
@@ -293,7 +305,16 @@ class Interpreter(InterpreterBase):
 
         for formal_name, is_ref, value in param_info:
             if is_ref:
-                pass
+                og_env, real_var = new_ref_params[formal_name]
+                initial_value = None
+                for i in og_env[-2]:
+                    if real_var in i:
+                        initial_value = i[real_var]
+                        break
+                if initial_value is None:
+                    super().error(ErrorType.NAME_ERROR, f"Variable {real_var} not defined")
+                self.env.fdef(formal_name)
+                self.env.set(formal_name, initial_value)
             else:
                 self.env.fdef(formal_name)
                 self.env.set(formal_name, value)
@@ -327,7 +348,7 @@ class Interpreter(InterpreterBase):
 
         return res, ret
 
-    def __run_while(self, statement):
+    def __run_while(self, statement, expected_return_type):
         res, ret = Value(), False
 
         while True:
@@ -340,7 +361,7 @@ class Interpreter(InterpreterBase):
                 break
 
             self.env.enter_block()
-            res, ret = self.__run_statements(statement.get("statements"))
+            res, ret = self.__run_statements(statement.get("statements"), expected_return_type)
             self.env.exit_block()
             if ret:
                 break
@@ -389,7 +410,7 @@ class Interpreter(InterpreterBase):
                 if ret:
                     break
             elif kind == self.WHILE_NODE:
-                res, ret = self.__run_while(statement)
+                res, ret = self.__run_while(statement, expected_return_type)
                 if ret:
                     break
             elif kind == self.RETURN_NODE:
@@ -580,7 +601,7 @@ class Interpreter(InterpreterBase):
         elif var_type == Type.OBJECT:
             return Value(Type.NIL, None)
         elif var_type == Type.VOID:
-            return Value(Type.NIL, None)
+            return Value(Type.VOID, None)
         else:
             super().error(ErrorType.TYPE_ERROR, "idk type")
 
@@ -592,11 +613,26 @@ class Interpreter(InterpreterBase):
         print("parts:", obj_section)
         print("VALUE IS:", value.v)
 
-        curr = self.env.get(obj_section[0])
+        curr = None
+        if obj_section[0] in self.ref_params:
+            og_env, real = self.ref_params[obj_section[0]]
+            for i in og_env[-2]:
+                if real in i:
+                    curr = i[real]
+                    break
+            if curr is None:
+                super().error(ErrorType.NAME_ERROR, "")
+        else:
+            curr = self.env.get(obj_section[0])
+
+        if curr.v is None:
+            super().error(ErrorType.FAULT_ERROR, "obj is nil?")
 
         for i in range(1, len(obj_section) - 1): # dont use parts[:1] bc its str, same thing in obj_read
             if not self.env.exists(obj_section[0]):
                 super().error(ErrorType.NAME_ERROR, "doesnt exist")
+            if curr.t == Type.NIL:
+                super().error(ErrorType.FAULT_ERROR, "dereferenced through a nil object reference") 
             if curr.t != Type.OBJECT:
                 super().error(ErrorType.TYPE_ERROR, "base item is not an object")
             elif obj_section[i] not in curr.v:
@@ -607,7 +643,7 @@ class Interpreter(InterpreterBase):
             curr = curr.v[obj_section[i]]
         
         curr.v[obj_section[-1]] = value
-
+        
 
     def __object_read(self, path):
         print()
@@ -616,9 +652,22 @@ class Interpreter(InterpreterBase):
         obj_section = path.split(".")
         print("parts:", obj_section)
 
-        curr = self.env.get(obj_section[0])
+        curr = None
+        if obj_section[0] in self.ref_params:
+            og_env, real = self.ref_params[obj_section[0]]
+            for i in og_env[-2]:
+                if real in i:
+                    curr = i[real]
+                    break
+            if curr is None:
+                super().error(ErrorType.NAME_ERROR, "")
+        else:
+            curr = self.env.get(obj_section[0])
 
-        for i in range(1, len(obj_section)):
+        if curr.v is None:
+            super().error(ErrorType.FAULT_ERROR, "obj is nil?")
+
+        for i in range(1, len(obj_section)): 
             if not self.env.exists(obj_section[0]):
                 super().error(ErrorType.NAME_ERROR, "doesnt exist")
             if curr.t != Type.OBJECT and i == obj_section[-1]:
@@ -630,15 +679,13 @@ class Interpreter(InterpreterBase):
                 super().error(ErrorType.NAME_ERROR, "requested field DNE") 
             else:
                 pass
-
             if curr.t == Type.OBJECT:
                 #print("it is obj confirmed")
                 pass
-            else:
+            else: 
                 super().error(ErrorType.TYPE_ERROR, "base item is not an object")
             
             curr = curr.v[obj_section[i]]
-
         return curr
 
 

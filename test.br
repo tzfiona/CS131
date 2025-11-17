@@ -1,7 +1,6 @@
+def foov() { return; }
 
 def main() {
-  var o;
-  
-  print(o == nil);         
-  print(o.xi);
+  var hi;
+  hi = foov();
 }
