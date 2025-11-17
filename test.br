@@ -1,14 +1,7 @@
 
-
 def main() {
-  var uo; 
-  uo = @;
-  var ao; 
-  ao = @;
-
-  uo.addresso = ao;
-  print(uo.addresso);
-
-  uo.addresso.zipi = 90024;
-  print(uo.addresso.zipi);  /* 90024 */
+  var o;
+  
+  print(o == nil);         
+  print(o.xi);
 }
