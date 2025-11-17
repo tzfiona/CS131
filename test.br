@@ -1,6 +1,0 @@
-def foov() { return; }
-
-def main() {
-  var hi;
-  hi = foov();
-}

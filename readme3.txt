@@ -11,3 +11,5 @@ v3/tests/test_function_overloading_expression.br ---------------PASSED
 v3/tests/test_nested_object.br ---------------------------------PASSED
 v3/tests/test_pass_by_reference_all_types.br -------------------PASSED
 v3/tests/test_value_vs_ref.br ----------------------------------PASSED
+
+all good

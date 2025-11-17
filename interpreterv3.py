@@ -90,6 +90,7 @@ class Interpreter(InterpreterBase):
         self.funcs = {}
         self.env = Environment()
         self.bops = {"+", "-", "*", "/", "==", "!=", ">", ">=", "<", "<=", "||", "&&"}
+        self.ref_params = {}
 
     def run(self, program):
         ast = parse_program(program)
@@ -204,7 +205,7 @@ class Interpreter(InterpreterBase):
             return
                 
         if not self.env.set(name, value) and "." not in name: 
-            print("HERE NOW") 
+            #print("HERE NOW") 
             super().error(ErrorType.NAME_ERROR, "variable not defined")
 
         exp_type = self.name_types(name, is_function=False)
@@ -244,10 +245,11 @@ class Interpreter(InterpreterBase):
 
         return Value(Type.VOID, None)
 
+    
     def __run_fcall(self, func_call_ast):
         fcall_name, args = func_call_ast.get("name"), func_call_ast.get("args")
-        print("~confirm~ the function call_name is:", fcall_name) 
-        print("~confirm~ the args is:", args) 
+        #print("~confirm~ the function call_name is:", fcall_name) 
+        #print("~confirm~ the args is:", args) 
 
         if fcall_name == "inputi" or fcall_name == "inputs":
             return self.__handle_input(fcall_name, args)
@@ -265,7 +267,7 @@ class Interpreter(InterpreterBase):
         #print("~confirm~ the param_types is:",param_types)
 
         signature = (fcall_name, tuple(param_types))
-        print("!!", signature)
+        #print("!!", signature)
 
         if signature not in self.funcs:
             super().error(ErrorType.NAME_ERROR, "nothing matches with this")
@@ -279,15 +281,15 @@ class Interpreter(InterpreterBase):
                 super().error(ErrorType.NAME_ERROR, "no funcs match") 
                 
         formal_args = func_def.get("args") #[a.get("name") for a in func_def.get("args")]
-        print("~confirm~ the formal_args is:",formal_args) 
+        #print("~confirm~ the formal_args is:",formal_args) 
         
         #actual_args = [self.__eval_expr(a) for a in args]
         #print("~confirm~ the actual_args is:",actual_args) 
 
         expected_return_type = self.name_types(fcall_name, is_function=True) 
-        print("~confirm~ expected return type of:", fcall_name, "is:", expected_return_type)
+        #print("~confirm~ expected return type of:", fcall_name, "is:", expected_return_type)
 
-        self.ref_params = {}
+        #self.ref_params = {}
         old_ref_params = self.ref_params.copy()
         new_ref_params = {}
 
@@ -340,7 +342,7 @@ class Interpreter(InterpreterBase):
                         initial_value = i[real_var]
                         break
                 if initial_value is None:
-                    super().error(ErrorType.NAME_ERROR, f"Variable {real_var} not defined")
+                    super().error(ErrorType.NAME_ERROR, "")
                 self.env.fdef(formal_name)
                 self.env.set(formal_name, initial_value)
             else:
@@ -356,7 +358,7 @@ class Interpreter(InterpreterBase):
         self.env.exit_func()
 
         return res
-
+    
     def __run_if(self, statement, expected_return_type):
         cond = self.__eval_expr(statement.get("condition"))
 
@@ -415,7 +417,7 @@ class Interpreter(InterpreterBase):
         elif expr == None:
             #print("HERE")
             default_is = self.__default_value(expected_return_type)
-            print("expr default is:",default_is.v)
+            #print("expr default is:",default_is.v)
             return (default_is, True)
         
 
@@ -522,7 +524,11 @@ class Interpreter(InterpreterBase):
 
             if var_name in self.ref_params:
                 og_env, real = self.ref_params[var_name]
-                return og_env.get(real) 
+                #return og_env.get(real) 
+                for i in og_env[-2]:
+                    if real in i:
+                        return i[real]
+                super().error(ErrorType.NAME_ERROR, "")
             
             if "." in var_name:
                 return self.__object_read(var_name)
@@ -581,7 +587,7 @@ class Interpreter(InterpreterBase):
                 super().error(ErrorType.TYPE_ERROR, "parameter's name doesn't end w a valid type letter (i/s/b/o)")
         
         if not name:
-            print("there is no name")
+            #print("there is no name")
             super().error(ErrorType.TYPE_ERROR, "no name")
 
     def __conversion(self, convert):
@@ -645,12 +651,12 @@ class Interpreter(InterpreterBase):
             super().error(ErrorType.TYPE_ERROR, "idk type")
 
     def __object_assign(self, path, value):
-        print()
-        print("-in handle dotted assign now-")
+        #print()
+        #print("-in handle dotted assign now-")
 
         obj_section = path.split(".")
-        print("parts:", obj_section)
-        print("VALUE IS:", value.v)
+        #print("parts:", obj_section)
+        #print("VALUE IS:", value.v)
 
         curr = None
         if obj_section[0] in self.ref_params:
@@ -695,11 +701,11 @@ class Interpreter(InterpreterBase):
         
 
     def __object_read(self, path):
-        print()
-        print("-in eval dotted read now-")
+        #print()
+        #print("-in eval dotted read now-")
 
         obj_section = path.split(".")
-        print("parts:", obj_section)
+        #print("parts:", obj_section)
 
         curr = None
         if obj_section[0] in self.ref_params:
@@ -726,7 +732,7 @@ class Interpreter(InterpreterBase):
             if curr.t != Type.OBJECT and curr.t != Type.NIL: 
                 super().error(ErrorType.TYPE_ERROR, "base item is not an obj")
             if curr.t != Type.OBJECT and i == obj_section[-1]:
-                print(i, "is the last item in parts")
+                #print(i, "is the last item in parts")
                 pass
             if curr.t == Type.NIL:
                 super().error(ErrorType.FAULT_ERROR, "nil obj") 
