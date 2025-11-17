@@ -1,22 +1,14 @@
 
 
-
-def fooi() {
-  return;  /* Should error - returning int in bool function */
-}
-
 def main() {
-  print(fooi());
+  var uo; 
+  uo = @;
+  var ao; 
+  ao = @;
+
+  uo.addresso = ao;
+  print(uo.addresso);
+
+  uo.addresso.zipi = 90024;
+  print(uo.addresso.zipi);  /* 90024 */
 }
-
-/*
-def changeFieldsv(objo) {
-   objo.msgs = "hi"; }
-
-def main() {
-  var o; 
-  o = @; 
-  o.msgs = "orig";
-  changeFieldsv(o);
-  print(o.msgs);     
-} */

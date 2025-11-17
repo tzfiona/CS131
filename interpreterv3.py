@@ -102,7 +102,7 @@ class Interpreter(InterpreterBase):
 
         for func in ast.get("functions"):
             func_name_types = self.name_types(func.get("name"), is_function=True)
-            #print(func_name, "-----") ###################################
+            #print(func_name, "-----") 
             
             param_types = []
             for i in func.get("args"):
@@ -116,7 +116,7 @@ class Interpreter(InterpreterBase):
             self.funcs[signatures] = func
             self.func_types[signatures] = func_name_types
             self.funcs[(func.get("name"), len(func.get("args")))] = func
-            #print(func) ###################################
+            #print(func) 
 
     def __get_function(self, name, num_params=0):
         if (name, num_params) not in self.funcs:
@@ -129,7 +129,7 @@ class Interpreter(InterpreterBase):
             super().error(ErrorType.NAME_ERROR, "variable already defined")
 
         variable_type = self.name_types(name, is_function=False)
-        #print("~test~", name, "=====", variable_type) ###################################
+        #print("~test~", name, "=====", variable_type) 
 
         if variable_type == Type.INT:
             default_value = Value(Type.INT, 0)
@@ -142,7 +142,7 @@ class Interpreter(InterpreterBase):
         else:
             super().error(ErrorType.TYPE_ERROR, "invalid variable type")
         
-        #print("~test~", name, "=====", default_value) ###################################
+        #print("~test~", name, "=====", default_value) 
 
         self.env.set(name, default_value)
 
@@ -152,7 +152,7 @@ class Interpreter(InterpreterBase):
             super().error(ErrorType.NAME_ERROR, "variable already defined")
         
         variable_type = self.name_types(name, is_function=False)
-        #print("~test~", name, "=====", variable_type) ###################################
+        #print("~test~", name, "=====", variable_type) 
 
         if variable_type == Type.INT:
             default_value = Value(Type.INT, 0)
@@ -165,11 +165,11 @@ class Interpreter(InterpreterBase):
         else:
             super().error(ErrorType.TYPE_ERROR, "invalid variable type")
         
-        #print("~test~", name, "=====", default_value) ###################################
+        #print("~test~", name, "=====", default_value) 
 
         self.env.set(name, default_value)
 
-    def __run_assign(self, statement):
+    def __run_assign(self, statement): 
         name = statement.get("var")
         value = self.__eval_expr(statement.get("expression"))
 
@@ -191,9 +191,15 @@ class Interpreter(InterpreterBase):
                     #print("YAYY")
                     block[real] = value 
                     return
-
-        if not self.env.set(name, value):
+                
+        if not self.env.set(name, value) and "." not in name: 
+            print("HERE NOW") 
             super().error(ErrorType.NAME_ERROR, "variable not defined")
+
+        if "." in name:
+            #print("THERE IS . IN NAME")
+            self.__object_assign(name, value)
+            return 
 
     def __handle_input(self, fcall_name, args):
         """Handle inputi and inputs function calls"""
@@ -228,8 +234,8 @@ class Interpreter(InterpreterBase):
 
     def __run_fcall(self, func_call_ast):
         fcall_name, args = func_call_ast.get("name"), func_call_ast.get("args")
-        print("~confirm~ the function call_name is:", fcall_name) #####
-        print("~confirm~ the args is:", args) #####
+        #print("~confirm~ the function call_name is:", fcall_name) 
+        #print("~confirm~ the args is:", args) 
 
         if fcall_name == "inputi" or fcall_name == "inputs":
             return self.__handle_input(fcall_name, args)
@@ -245,8 +251,8 @@ class Interpreter(InterpreterBase):
         #actual_args = [self.__eval_expr(a) for a in args]
         #print("~confirm~ the actual_args is:",actual_args) 
 
-        expected_return_type = self.name_types(fcall_name, is_function=True) #!!!!!!!!!!!!!!!!!!!!!!!!
-        print("!~confirm~ expected return type of:", fcall_name, "is:", expected_return_type)
+        expected_return_type = self.name_types(fcall_name, is_function=True) 
+        print("~confirm~ expected return type of:", fcall_name, "is:", expected_return_type)
 
         self.ref_params = {}
         old_ref_params = self.ref_params.copy()
@@ -293,7 +299,7 @@ class Interpreter(InterpreterBase):
         res, returned = self.__run_statements(func_def.get("statements"), expected_return_type)
 
         if not returned:
-            res = self.__default_value(expected_return_type) #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            res = self.__default_value(expected_return_type) 
 
         self.ref_params = old_ref_params
         self.env.exit_func()
@@ -341,11 +347,11 @@ class Interpreter(InterpreterBase):
 
     def __run_return(self, statement, expected_return_type):
         expr = statement.get("expression")
-        print("~confirm~ expr is:", expr)
+        #print("~confirm~ expr is:", expr)
 
         if expr: 
             return_type = self.__eval_expr(expr)
-            print("!~confirm~ the return type is:", return_type.t)
+            #print("~confirm~ the return type is:", return_type.t)
 
             if expected_return_type == Type.VOID and expr is not None:
                 super().error(ErrorType.TYPE_ERROR, "void func cannot return anything!!")
@@ -358,7 +364,7 @@ class Interpreter(InterpreterBase):
         elif expr == None:
             print("HERE")
             default_is = self.__default_value(expected_return_type)
-            print("uiruirw",default_is.v)
+            print("expr default is:",default_is.v)
             return (default_is, True)
         
         return (Value(), True)
@@ -371,7 +377,7 @@ class Interpreter(InterpreterBase):
 
             if kind == self.VAR_DEF_NODE:
                 self.__run_vardef(statement)
-            elif kind == "bvardef":  # Add this
+            elif kind == "bvardef": 
                 self.__run_bvardef(statement)
             elif kind == "=":
                 self.__run_assign(statement)
@@ -451,12 +457,14 @@ class Interpreter(InterpreterBase):
 
         if kind == self.QUALIFIED_NAME_NODE:
             var_name = expr.get("name")
-            #print("???", var_name)
+            #print("~confirm~ var_name is:", var_name)
 
             if var_name in self.ref_params:
                 og_env, real = self.ref_params[var_name]
                 return og_env.get(real) 
             
+            if "." in var_name:
+                return self.__object_read(var_name)
 
             if not self.env.exists(var_name):
                 super().error(ErrorType.NAME_ERROR, "variable not defined")
@@ -488,7 +496,7 @@ class Interpreter(InterpreterBase):
 
         raise Exception("should not get here!")
 
-    def name_types(self, name, is_function=False): ###
+    def name_types(self, name, is_function=False): 
         if name == "main":
             return Type.VOID
     
@@ -575,6 +583,62 @@ class Interpreter(InterpreterBase):
         else:
             super().error(ErrorType.TYPE_ERROR, "idk type")
 
+    def __object_assign(self, path, value):
+        print()
+        print("-in handle dotted assign now-")
+
+        obj_section = path.split(".")
+        print("parts:", obj_section)
+        print("VALUE IS:", value.v)
+
+        curr = self.env.get(obj_section[0])
+
+        for i in range(1, len(obj_section) - 1): # dont use parts[:1] bc its str, same thing in obj_read
+            if not self.env.exists(obj_section[0]):
+                super().error(ErrorType.NAME_ERROR, "doesnt exist")
+            if curr.t != Type.OBJECT:
+                super().error(ErrorType.TYPE_ERROR, "base item is not an object")
+            elif obj_section[i] not in curr.v:
+                super().error(ErrorType.NAME_ERROR, "requested field DNE") 
+            else:
+                pass
+
+            curr = curr.v[obj_section[i]]
+        
+        curr.v[obj_section[-1]] = value
+
+
+    def __object_read(self, path):
+        print()
+        print("-in eval dotted read now-")
+
+        obj_section = path.split(".")
+        print("parts:", obj_section)
+
+        curr = self.env.get(obj_section[0])
+
+        for i in range(1, len(obj_section)):
+            if not self.env.exists(obj_section[0]):
+                super().error(ErrorType.NAME_ERROR, "doesnt exist")
+            if curr.t != Type.OBJECT and i == obj_section[-1]:
+                print(i, "is the last item in parts")
+                pass
+            if curr.t == Type.OBJECT:
+                #print("it is obj confirmed")
+                pass
+            else:
+                super().error(ErrorType.TYPE_ERROR, "base item is not an object")
+
+            if curr.t == Type.NIL:
+                super().error(ErrorType.FAULT_ERROR, "dereferenced through a nil object reference") 
+            elif obj_section[i] not in curr.v:
+                super().error(ErrorType.NAME_ERROR, "requested field DNE") 
+            else:
+                pass
+            
+            curr = curr.v[obj_section[i]]
+
+        return curr
 
 
 def main():
