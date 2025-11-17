@@ -283,6 +283,8 @@ class Interpreter(InterpreterBase):
                 #print("its not ref")
                 actual_val = self.__eval_expr(actual)
                 #print("~confirm~ actual_value is:", actual_value)
+                if actual_val.t == Type.VOID:
+                    super().error(ErrorType.TYPE_ERROR, "no passing void")
                 param_info.append((formal_name, False, actual_val))
                 #print("~confirm~ param_info is:", param_info)
 
@@ -360,14 +362,13 @@ class Interpreter(InterpreterBase):
                 print("ERRORRRRR", return_type.t, "DOESNT EQUAL", expected_return_type)
                 super().error(ErrorType.TYPE_ERROR, "return type doesnt match expected type")
 
-            return (self.__eval_expr(expr), True)
+            return (return_type, True)
         elif expr == None:
-            print("HERE")
+            #print("HERE")
             default_is = self.__default_value(expected_return_type)
             print("expr default is:",default_is.v)
             return (default_is, True)
         
-        return (Value(), True)
 
     def __run_statements(self, statements, expected_return_type):
         res, ret = Value(), False
@@ -623,18 +624,18 @@ class Interpreter(InterpreterBase):
             if curr.t != Type.OBJECT and i == obj_section[-1]:
                 print(i, "is the last item in parts")
                 pass
-            if curr.t == Type.OBJECT:
-                #print("it is obj confirmed")
-                pass
-            else:
-                super().error(ErrorType.TYPE_ERROR, "base item is not an object")
-
             if curr.t == Type.NIL:
                 super().error(ErrorType.FAULT_ERROR, "dereferenced through a nil object reference") 
             elif obj_section[i] not in curr.v:
                 super().error(ErrorType.NAME_ERROR, "requested field DNE") 
             else:
                 pass
+
+            if curr.t == Type.OBJECT:
+                #print("it is obj confirmed")
+                pass
+            else:
+                super().error(ErrorType.TYPE_ERROR, "base item is not an object")
             
             curr = curr.v[obj_section[i]]
 
