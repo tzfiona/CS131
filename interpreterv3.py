@@ -173,6 +173,9 @@ class Interpreter(InterpreterBase):
         name = statement.get("var")
         value = self.__eval_expr(statement.get("expression"))
 
+        if value.t == Type.VOID:
+            super().error(ErrorType.TYPE_ERROR, "cannot assign void to var")
+
         #print("~confirm~ the name is:", name)
         #print("~confirm~ the value is:", value)
 
@@ -221,12 +224,12 @@ class Interpreter(InterpreterBase):
 
         super().output(out)
 
-        return Value(Type.NIL, None)
+        return Value(Type.VOID, None)
 
     def __run_fcall(self, func_call_ast):
         fcall_name, args = func_call_ast.get("name"), func_call_ast.get("args")
-        #print("~confirm~ the fcall_name is:", fcall_name) #####
-        #print("~confirm~ the args is:", args) #####
+        print("~confirm~ the function call_name is:", fcall_name) #####
+        print("~confirm~ the args is:", args) #####
 
         if fcall_name == "inputi" or fcall_name == "inputs":
             return self.__handle_input(fcall_name, args)
@@ -237,10 +240,13 @@ class Interpreter(InterpreterBase):
         func_def = self.__get_function(fcall_name, len(args))
 
         formal_args = func_def.get("args") #[a.get("name") for a in func_def.get("args")]
-        #print("~confirm~ the formal_args is:",formal_args) #####
+        #print("~confirm~ the formal_args is:",formal_args) 
         
         #actual_args = [self.__eval_expr(a) for a in args]
-        #print("~confirm~ the actual_args is:",actual_args) #####
+        #print("~confirm~ the actual_args is:",actual_args) 
+
+        expected_return_type = self.name_types(fcall_name, is_function=True) #!!!!!!!!!!!!!!!!!!!!!!!!
+        print("!~confirm~ expected return type of:", fcall_name, "is:", expected_return_type)
 
         self.ref_params = {}
         old_ref_params = self.ref_params.copy()
@@ -284,14 +290,17 @@ class Interpreter(InterpreterBase):
                 self.env.fdef(formal_name)
                 self.env.set(formal_name, value)
 
-        res, _ = self.__run_statements(func_def.get("statements"))
+        res, returned = self.__run_statements(func_def.get("statements"), expected_return_type)
+
+        if not returned:
+            res = self.__default_value(expected_return_type) #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
         self.ref_params = old_ref_params
         self.env.exit_func()
 
         return res
 
-    def __run_if(self, statement):
+    def __run_if(self, statement, expected_return_type):
         cond = self.__eval_expr(statement.get("condition"))
 
         if cond.t != Type.BOOL:
@@ -302,9 +311,9 @@ class Interpreter(InterpreterBase):
         res, ret = None, False
 
         if cond.v:
-            res, ret = self.__run_statements(statement.get("statements"))
+            res, ret = self.__run_statements(statement.get("statements"),expected_return_type)
         elif statement.get("else_statements"):
-            res, ret = self.__run_statements(statement.get("else_statements"))
+            res, ret = self.__run_statements(statement.get("else_statements"), expected_return_type)
 
         self.env.exit_block()
 
@@ -330,13 +339,31 @@ class Interpreter(InterpreterBase):
 
         return res, ret
 
-    def __run_return(self, statement):
+    def __run_return(self, statement, expected_return_type):
         expr = statement.get("expression")
-        if expr:
+        print("~confirm~ expr is:", expr)
+
+        if expr: 
+            return_type = self.__eval_expr(expr)
+            print("!~confirm~ the return type is:", return_type.t)
+
+            if expected_return_type == Type.VOID and expr is not None:
+                super().error(ErrorType.TYPE_ERROR, "void func cannot return anything!!")
+
+            if return_type.t != expected_return_type:
+                print("ERRORRRRR", return_type.t, "DOESNT EQUAL", expected_return_type)
+                super().error(ErrorType.TYPE_ERROR, "return type doesnt match expected type")
+
             return (self.__eval_expr(expr), True)
+        elif expr == None:
+            print("HERE")
+            default_is = self.__default_value(expected_return_type)
+            print("uiruirw",default_is.v)
+            return (default_is, True)
+        
         return (Value(), True)
 
-    def __run_statements(self, statements):
+    def __run_statements(self, statements, expected_return_type):
         res, ret = Value(), False
 
         for statement in statements:
@@ -351,7 +378,7 @@ class Interpreter(InterpreterBase):
             elif kind == self.FCALL_NODE:
                 self.__run_fcall(statement)
             elif kind == self.IF_NODE:
-                res, ret = self.__run_if(statement)
+                res, ret = self.__run_if(statement, expected_return_type)
                 if ret:
                     break
             elif kind == self.WHILE_NODE:
@@ -359,7 +386,7 @@ class Interpreter(InterpreterBase):
                 if ret:
                     break
             elif kind == self.RETURN_NODE:
-                res, ret = self.__run_return(statement)
+                res, ret = self.__run_return(statement, expected_return_type)
                 break
 
         return res, ret
@@ -533,6 +560,20 @@ class Interpreter(InterpreterBase):
                     return Value(Type.BOOL, False)
             else:
                 super().error(ErrorType.TYPE_ERROR, "no obj -> bool")
+
+    def __default_value(self, var_type):
+        if var_type == Type.INT:
+            return Value(Type.INT, 0)
+        elif var_type == Type.STRING:
+            return Value(Type.STRING, "")
+        elif var_type == Type.BOOL:
+            return Value(Type.BOOL, False)
+        elif var_type == Type.OBJECT:
+            return Value(Type.NIL, None)
+        elif var_type == Type.VOID:
+            return Value(Type.NIL, None)
+        else:
+            super().error(ErrorType.TYPE_ERROR, "idk type")
 
 
 
