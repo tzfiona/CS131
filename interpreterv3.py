@@ -138,7 +138,7 @@ class Interpreter(InterpreterBase):
         elif variable_type == Type.BOOL:
             default_value = Value(Type.BOOL, False)
         elif variable_type == Type.OBJECT:
-            default_value = Value(Type.NIL, None) # nil?
+            default_value = Value(Type.OBJECT, None) # nil?
         else:
             super().error(ErrorType.TYPE_ERROR, "invalid variable type")
         
@@ -161,7 +161,7 @@ class Interpreter(InterpreterBase):
         elif variable_type == Type.BOOL:
             default_value = Value(Type.BOOL, False)
         elif variable_type == Type.OBJECT:
-            default_value = Value(Type.NIL, None) # nil?
+            default_value = Value(Type.OBJECT, None) # nil?
         else:
             super().error(ErrorType.TYPE_ERROR, "invalid variable type")
         
@@ -254,9 +254,30 @@ class Interpreter(InterpreterBase):
 
         if fcall_name == "print":
             return self.__handle_print(args)
+        
+        actual_values = []
+        param_types = []
+    
+        for a in args:
+            actual_values.append(self.__eval_expr(a))
+            param_types.append(self.__eval_expr(a).t)
+        #print("~confirm~ the actual_values is:",actual_values)
+        #print("~confirm~ the param_types is:",param_types)
 
-        func_def = self.__get_function(fcall_name, len(args))
+        signature = (fcall_name, tuple(param_types))
+        print("!!", signature)
 
+        if signature not in self.funcs:
+            super().error(ErrorType.NAME_ERROR, "nothing matches with this")
+        
+        if signature in self.funcs:
+            func_def = self.funcs[signature]
+        else:
+            try:
+                func_def = self.__get_function(fcall_name, len(args))
+            except:
+                super().error(ErrorType.NAME_ERROR, "no funcs match") 
+                
         formal_args = func_def.get("args") #[a.get("name") for a in func_def.get("args")]
         print("~confirm~ the formal_args is:",formal_args) 
         
@@ -272,7 +293,7 @@ class Interpreter(InterpreterBase):
 
         param_info = []
 
-        for formal, actual in zip(formal_args, args):
+        for formal, actual in zip(formal_args, actual_values):
             #print()
             #print("~confirm~ formal:",formal)
             #print("~confirm~ actual:",actual)
@@ -285,19 +306,26 @@ class Interpreter(InterpreterBase):
 
             if is_ref:
                 #print("its ref!")
-                var_name = actual.get("name")
+                #var_name = actual.get("name")
                 #print("~confirm~ var_name is:",var_name)
+
+                for f, a in zip(formal_args, args):
+                    if f is formal:
+                        actual_expr = a
+                        break 
+                
+                var_name = actual_expr.get("name")
 
                 new_ref_params[formal_name] = (self.env.env, var_name) 
                 param_info.append((formal_name, True, var_name))
                 #print("~confirm~ param_info is:", param_info)
             else:
                 #print("its not ref")
-                actual_val = self.__eval_expr(actual)
+                #actual_val = self.__eval_expr(actual)
                 #print("~confirm~ actual_value is:", actual_value)
-                if actual_val.t == Type.VOID:
-                    super().error(ErrorType.TYPE_ERROR, "no passing void")
-                param_info.append((formal_name, False, actual_val))
+                #if actual_val.t == Type.VOID:
+                    #super().error(ErrorType.TYPE_ERROR, "no passing void")
+                param_info.append((formal_name, False, actual))
                 #print("~confirm~ param_info is:", param_info)
 
         self.env.enter_func()
@@ -425,9 +453,20 @@ class Interpreter(InterpreterBase):
         vl_val, vr_val = vl.v, vr.v
 
         if kind == "==":
-            return Value(Type.BOOL, tl == tr and vl_val == vr_val)
+            if tl != tr:
+                return Value(Type.BOOL, False)
+            
+            if tl == Type.OBJECT or tl == Type.NIL:
+                return Value(Type.BOOL, vl_val is vr_val) #not just equal but same memory
+            return Value(Type.BOOL, vl_val == vr_val)
+        
         if kind == "!=":
-            return Value(Type.BOOL, not (tl == tr and vl_val == vr_val))
+            if tl != tr:
+                return Value(Type.BOOL, True)
+            
+            if tl == Type.OBJECT or tl == Type.NIL: 
+                return Value(Type.BOOL, vl_val is not vr_val)
+            return Value(Type.BOOL, vl_val != vr_val)
 
         if tl == Type.STRING and tr == Type.STRING:
             if kind == "+":
@@ -472,7 +511,7 @@ class Interpreter(InterpreterBase):
             return Value(Type.BOOL, expr.get("val"))
 
         if kind == self.NIL_NODE:
-            return Value(Type.NIL, None)
+            return Value(Type.OBJECT, None)
         
         if kind == "@": 
             return Value(Type.OBJECT, {})
@@ -599,7 +638,7 @@ class Interpreter(InterpreterBase):
         elif var_type == Type.BOOL:
             return Value(Type.BOOL, False)
         elif var_type == Type.OBJECT:
-            return Value(Type.NIL, None)
+            return Value(Type.OBJECT, None)
         elif var_type == Type.VOID:
             return Value(Type.VOID, None)
         else:
@@ -623,25 +662,35 @@ class Interpreter(InterpreterBase):
             if curr is None:
                 super().error(ErrorType.NAME_ERROR, "")
         else:
+            if not self.env.exists(obj_section[0]): 
+                super().error(ErrorType.NAME_ERROR, "var not defined")
             curr = self.env.get(obj_section[0])
 
         if curr.v is None:
             super().error(ErrorType.FAULT_ERROR, "obj is nil?")
 
+        if self.name_types(obj_section[0], is_function=False) != Type.OBJECT:
+            super().error(ErrorType.TYPE_ERROR, "not an object")
+
         for i in range(1, len(obj_section) - 1): # dont use parts[:1] bc its str, same thing in obj_read
-            if not self.env.exists(obj_section[0]):
-                super().error(ErrorType.NAME_ERROR, "doesnt exist")
-            if curr.t == Type.NIL:
-                super().error(ErrorType.FAULT_ERROR, "dereferenced through a nil object reference") 
-            if curr.t != Type.OBJECT:
+            if curr.v is None:
+                super().error(ErrorType.FAULT_ERROR, "")
+            if curr.t != Type.OBJECT and curr.t != Type.NIL:
                 super().error(ErrorType.TYPE_ERROR, "base item is not an object")
+            if self.name_types(obj_section[i], is_function=False) != Type.OBJECT:
+                super().error(ErrorType.TYPE_ERROR, "not an object")
             elif obj_section[i] not in curr.v:
                 super().error(ErrorType.NAME_ERROR, "requested field DNE") 
             else:
                 pass
 
             curr = curr.v[obj_section[i]]
+            if curr.v is None:
+                super().error(ErrorType.FAULT_ERROR, "obj is nil?")
         
+        if self.name_types(obj_section[-1], is_function=False) != value.t:
+            super().error(ErrorType.TYPE_ERROR, "types don't mach")
+
         curr.v[obj_section[-1]] = value
         
 
@@ -662,19 +711,25 @@ class Interpreter(InterpreterBase):
             if curr is None:
                 super().error(ErrorType.NAME_ERROR, "")
         else:
+            if not self.env.exists(obj_section[0]):
+                super().error(ErrorType.NAME_ERROR,  "var not defined")
             curr = self.env.get(obj_section[0])
 
-        if curr.v is None:
-            super().error(ErrorType.FAULT_ERROR, "obj is nil?")
+        if self.name_types(obj_section[0], is_function=False) != Type.OBJECT:
+            super().error(ErrorType.TYPE_ERROR, "not an object")
 
         for i in range(1, len(obj_section)): 
-            if not self.env.exists(obj_section[0]):
-                super().error(ErrorType.NAME_ERROR, "doesnt exist")
+            '''if not self.env.exists(obj_section[0]):
+                super().error(ErrorType.NAME_ERROR, "doesnt exist")'''
+            if curr.v is None:
+                super().error(ErrorType.FAULT_ERROR, "nil obj?")
+            if curr.t != Type.OBJECT and curr.t != Type.NIL: 
+                super().error(ErrorType.TYPE_ERROR, "base item is not an obj")
             if curr.t != Type.OBJECT and i == obj_section[-1]:
                 print(i, "is the last item in parts")
                 pass
             if curr.t == Type.NIL:
-                super().error(ErrorType.FAULT_ERROR, "dereferenced through a nil object reference") 
+                super().error(ErrorType.FAULT_ERROR, "nil obj") 
             elif obj_section[i] not in curr.v:
                 super().error(ErrorType.NAME_ERROR, "requested field DNE") 
             else:
@@ -682,8 +737,6 @@ class Interpreter(InterpreterBase):
             if curr.t == Type.OBJECT:
                 #print("it is obj confirmed")
                 pass
-            else: 
-                super().error(ErrorType.TYPE_ERROR, "base item is not an object")
             
             curr = curr.v[obj_section[i]]
         return curr
