@@ -12,9 +12,11 @@ class Type(enum.Enum):
     OBJECT = 4
     VOID = 5
     ERROR = 6
+    FUNCTION = 7 ########
+    INTERFACE = 8 ########
 
     @staticmethod
-    def get_type(var_name):
+    def get_type(var_name): #gets type from last letter of function or variable 
         if not var_name:
             return Type.ERROR
         last_letter = var_name[-1]
@@ -28,6 +30,12 @@ class Type(enum.Enum):
             return Type.OBJECT
         if last_letter == "v":
             return Type.VOID  # only for functions
+        
+        if last_letter == "f": ########
+            return Type.FUNCTION
+        if last_letter.isupper():
+            return Type.INTERFACE ########
+            
         return Type.ERROR
 
 
@@ -57,6 +65,11 @@ class Value:
             )
         elif t == Type.VOID:
             return None
+        
+        elif t == Type.INTERFACE:
+            return None
+        elif t == Type.FUNCTION:
+            return None
 
         raise Exception("invalid default value for type")
 
@@ -79,44 +92,52 @@ class Environment:
 
     # define new variable at function scope
     def fdef(self, varname, value):
-        if self.exists(varname):
-            return False
         top_env = self.env[-1]
+        if varname in top_env[0]:
+            return False
         top_env[0][varname] = value
         return True
 
     # define new variable in top block
     def bdef(self, varname, value):
+        self.env[-1][-1][varname] = value
+        '''
         if self.exists(varname):
             return False
         top_env = self.env[-1]
-        top_env[-1][varname] = value
+        top_env[-1][varname] = value 
+        '''
         return True
 
     def exists(self, varname):
-        for block in self.env[-1]:
+        for block in reversed(self.env[-1]):
             if varname in block:
                 return True
         return False
 
     def get(self, varname):
         top_env = self.env[-1]
-        for block in top_env:
+        for block in reversed(self.env[-1]):
             if varname in block:
                 return block[varname]
         return None
 
     def set(self, varname, value):
-        if not self.exists(varname):
+        if not self.exists(varname): #shan?
             return False
         top_env = self.env[-1]
-        for block in top_env:
+        for block in reversed(self.env[-1]):
             if varname in block:
                 block[varname] = value
+                return True
         return True
 
 
-class Function:
+class Function: 
+    # represents user defined function
+    # stores return type(from name), args(names + reference info), body statements
+    # __get_return_type finds founction type
+
     def __init__(self, func_ast):
         self.return_type = self.__get_return_type(func_ast)
         # the args in the ast is a list of qualified name nodes
@@ -131,9 +152,24 @@ class Function:
         return Type.get_type(name)
 
 
+class FunctionValue:
+    def __init__(self, func_ast):
+        self.name = func_ast.get("name")
+        self.formal_args = {a.get("name"): a.get("ref") for a in func_ast.get("args")}
+        self.statements = func_ast.get("statements")
+        self.return_type = self.__get_return_type(func_ast)
+    
+    def __get_return_type(self, func_ast):
+        name = func_ast.get("name")
+        if name == "main":
+            return Type.VOID
+        return Type.get_type(name)
+
+
 class Interpreter(InterpreterBase):
     def __init__(self, console_output=True, inp=None, trace_output=False):
         super().__init__(console_output, inp)
+        self.interfaces = {} # stores interface name and dict of the fields ########
         self.funcs = {}
         self.env = Environment()
         self.bops = {"+", "-", "*", "/", "==", "!=", ">", ">=", "<", "<=", "||", "&&"}
@@ -144,12 +180,17 @@ class Interpreter(InterpreterBase):
         call_element = Element(InterpreterBase.FCALL_NODE, name="main", args=[])
         self.__run_fcall(call_element)
 
-    def __get_parameters_type_signature(self, formal_params):
-        # a formal arg is an Element of type ARG_NODE
-        param_type_sig = "".join(p.get("name")[-1] for p in formal_params)
-        allowed = "bios"
-        if not all(c in allowed for c in param_type_sig):
-            super().error(ErrorType.TYPE_ERROR, "invalid type in formal parameter")
+    def __get_parameters_type_signature(self, formal_params): ########
+        param_type_sig = ""
+        allowed = "biosfo"
+        for p in formal_params:
+            t = p.get("name")[-1] 
+            if t.isupper():
+                t = "o"
+            elif t not in allowed:
+                super().error(ErrorType.TYPE_ERROR, f"invalid type '{t}' in formal parameter")
+            param_type_sig += t
+
         return param_type_sig
 
     def __get_arguments_type_signature(self, actual_args):
@@ -186,13 +227,20 @@ class Interpreter(InterpreterBase):
             self.funcs[type_sig] = func_obj
 
     def __get_function(self, name, param_type_signature=""):
+        var_type = Type.get_type(name)
+        if var_type == Type.FUNCTION:
+            print(name, "is", var_type, "so:") ########
+            super().error(ErrorType.FAULT_ERROR, "called nil function")
+
         if (name, param_type_signature) not in self.funcs:
             super().error(ErrorType.NAME_ERROR, "function not found")
         return self.funcs[(name, param_type_signature)]
 
     def __run_vardef(self, statement, block_def=False):
         name = statement.get("name")
+        print(name) ########
         var_type = Type.get_type(name)
+        print(var_type) ########
         if var_type == Type.ERROR or var_type == Type.VOID:
             super().error(ErrorType.TYPE_ERROR, "invalid variable type")
 
