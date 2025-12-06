@@ -76,7 +76,7 @@ class Value:
 
 class Environment:
     def __init__(self):
-        self.env = []
+        self.env = [[{}]]
 
     def enter_block(self):
         self.env[-1].append({})
@@ -195,6 +195,7 @@ class Interpreter(InterpreterBase):
 
     def __get_arguments_type_signature(self, actual_args):
         arg_sig = ""
+        print("actual_args are", actual_args) ######
         for arg in actual_args:
             if arg.t == Type.INT:
                 arg_sig += "i"
@@ -204,6 +205,9 @@ class Interpreter(InterpreterBase):
                 arg_sig += "b"
             elif arg.t == Type.OBJECT:
                 arg_sig += "o"
+            elif arg.t == Type.FUNCTION:
+                arg_sig += "f"
+
             elif arg.t == Type.VOID:
                 super().error(
                     ErrorType.TYPE_ERROR, "void type not allowed as parameter"
@@ -225,17 +229,28 @@ class Interpreter(InterpreterBase):
             if type_sig in self.funcs:
                 super().error(ErrorType.NAME_ERROR, "function already defined")
             self.funcs[type_sig] = func_obj
-
+    
     def __get_function(self, name, param_type_signature=""):
         var_type = Type.get_type(name)
-        if var_type == Type.FUNCTION:
-            print(name, "is", var_type, "so:") ########
-            super().error(ErrorType.FAULT_ERROR, "called nil function")
+        print("... :",name, "is", var_type)
 
+        variable = None
+        if self.env.exists(name):
+            variable = self.env.get(name)
+            print("... variable is:",variable)
+        if variable:
+            if variable.t == Type.FUNCTION:
+                if variable.v is None:
+                    super().error(ErrorType.FAULT_ERROR, "called nil function")
+                else:
+                    return variable.v
+            else:
+                super().error(ErrorType.TYPE_ERROR, "attempted to call non-function variable")
+        
         if (name, param_type_signature) not in self.funcs:
             super().error(ErrorType.NAME_ERROR, "function not found")
         return self.funcs[(name, param_type_signature)]
-
+    
     def __run_vardef(self, statement, block_def=False):
         name = statement.get("name")
         print(name) ########
@@ -447,12 +462,26 @@ class Interpreter(InterpreterBase):
         vl_val, vr_val = vl.v, vr.v
 
         if kind == "==":
+            print(tl)
+            print(tr)
+            print("hereee")
             if tl == Type.OBJECT and tr == Type.OBJECT:
                 return Value(Type.BOOL, tl == tr and vl_val is vr_val)
+            if tl == Type.FUNCTION and tr == Type.FUNCTION:
+                return Value(Type.BOOL, tl == tr and vl_val is vr_val)
+            if (tl == Type.OBJECT and tr == Type.FUNCTION) or (tl == Type.FUNCTION and tr == Type.OBJECT):
+                return Value(Type.BOOL, vl_val is vr_val)
             return Value(Type.BOOL, tl == tr and vl_val == vr_val)
         if kind == "!=":
+            print(tl)
+            print(tr)
+            print("here")
             if tl == Type.OBJECT and tr == Type.OBJECT:
                 return Value(Type.BOOL, not (tl == tr and vl_val is vr_val))
+            if tl == Type.FUNCTION and tr == Type.FUNCTION:
+                return Value(Type.BOOL, not (tl == tr and vl_val is vr_val))
+            if (tl == Type.OBJECT and tr == Type.FUNCTION) or (tl == Type.FUNCTION and tr == Type.OBJECT):
+                return Value(Type.BOOL, (tl == tr and vl_val is vr_val))
             return Value(Type.BOOL, not (tl == tr and vl_val == vr_val))
 
         if tl == Type.STRING and tr == Type.STRING:
@@ -524,12 +553,22 @@ class Interpreter(InterpreterBase):
                 super().error(ErrorType.TYPE_ERROR, "cannot convert object to bool")
         else:
             super().error(ErrorType.TYPE_ERROR, "invalid conversion type")
-
+    
     def __get_var_value(self, expr):
         dotted_name = expr.get("name").split(".")
+        print()
+        print(dotted_name[0], "=")
+        name_length = len(dotted_name)
 
         if not self.env.exists(dotted_name[0]):
-            super().error(ErrorType.NAME_ERROR, "variable not defined")
+            if name_length == 1:
+                print("...finding function", dotted_name, "and returning as func value")
+                function_value = self.find_function_w_name(dotted_name[0])
+                print(function_value)
+                return Value(Type.FUNCTION, function_value)
+            else:
+                super().error(ErrorType.NAME_ERROR, "variable not defined HEREE")
+        print("... function found and set")
         value = self.env.get(dotted_name[0])
         suffix_name = dotted_name[1:]
         if len(dotted_name) > 1 and dotted_name[0][-1] != "o":
@@ -591,6 +630,21 @@ class Interpreter(InterpreterBase):
             return self.__eval_convert(expr)
 
         raise Exception("should not get here!")
+
+    def find_function_w_name(self, name):
+        matches = []
+        for (key, value) in self.funcs.items():
+            print("... the key is",key)
+            print("... the value is",value)
+            fname = key[0]
+            signature = key[1]
+            if fname == name:
+                matches.append(value)
+        if matches == []:
+            super().error(ErrorType.NAME_ERROR, "function (", name, ")not defined")
+        if len(matches) != 1:
+            super().error(ErrorType.TYPE_ERROR, "function overload")
+        return matches[0]
 
 
 def main():
