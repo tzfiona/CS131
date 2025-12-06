@@ -6,10 +6,10 @@ v4/fails/test_lambda_wrong_arg_count_fail.br
 v4/fails/test_nil_function_call_fail.br ------------------------PASSED
 
 v4/tests/test_duplicate_var_different_scope.br -----------------PASSED
-v4/tests/test_function_object_nil_comparison.br
-v4/tests/test_function_param_call.br
-v4/tests/test_function_return.br
-v4/tests/test_function_variable.br
+v4/tests/test_function_object_nil_comparison.br ----------------PASSED
+v4/tests/test_function_param_call.br ---------------------------PASSED
+v4/tests/test_function_return.br -------------------------------PASSED
+v4/tests/test_function_variable.br -----------------------------PASSED
 v4/tests/test_interface_assign_success_with_func.br
 v4/tests/test_interface_assign_success.br
 v4/tests/test_interface_nested_interface_reference.br
