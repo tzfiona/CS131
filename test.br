@@ -1,13 +1,45 @@
-/* Test that comparing a function variable and object variable (both nil) returns false */
+interface A {
+  vali;
+  messages;
+  validb;
+}
+
 def main() {
-    var o;
-    var f;
-    
-    print(f != o);
+  var compliantObjecto;
+  var xA;
+  print("1----------------------------");
+  
+  /* Create an object that complies with interface A */
+  compliantObjecto = @;
+  compliantObjecto.vali = 100;
+  compliantObjecto.messages = "Interface compliant";
+  compliantObjecto.validb = true;
+  
+  print("2----------------------------");
+
+  /* This assignment should succeed - object meets interface A requirements */
+  xA = compliantObjecto;
+
+  print("3----------------------------");
+  
+  /* Verify assignment worked by accessing fields through interface variable */
+  print("Assignment successful! Interface A object contains:");
+  print("vali: ");
+  print(xA.vali);
+  print(", messages: ");
+  print(xA.messages);
+  print(", validb: ");
+  print(xA.validb);
 }
 
 /*
 *OUT*
-false
+Assignment successful! Interface A object contains:
+vali: 
+100
+, messages: 
+Interface compliant
+, validb: 
+true
 *OUT*
-*/ 
+*/

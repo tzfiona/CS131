@@ -153,11 +153,14 @@ class Function:
 
 
 class FunctionValue:
-    def __init__(self, func_ast):
+    def __init__(self, func_ast, closure_env=None):
         self.name = func_ast.get("name")
         self.formal_args = {a.get("name"): a.get("ref") for a in func_ast.get("args")}
         self.statements = func_ast.get("statements")
         self.return_type = self.__get_return_type(func_ast)
+
+        self.t = Type.FUNCTION #i can always call these, no issue
+        self.v = self
     
     def __get_return_type(self, func_ast):
         name = func_ast.get("name")
@@ -249,6 +252,8 @@ class Interpreter(InterpreterBase):
         
         if (name, param_type_signature) not in self.funcs:
             super().error(ErrorType.NAME_ERROR, "function not found")
+
+        
         return self.funcs[(name, param_type_signature)]
     
     def __run_vardef(self, statement, block_def=False):
@@ -272,17 +277,25 @@ class Interpreter(InterpreterBase):
         dotted_name = name.split(".")
         rvalue = self.eval_expr(statement.get("expression"))
 
+        if isinstance(rvalue, FunctionValue): 
+            rtype = Type.FUNCTION 
+        else:
+            rtype = rvalue.t
+
         if not self.env.exists(dotted_name[0]):
             super().error(ErrorType.NAME_ERROR, "variable not defined")
 
-        if Type.get_type(dotted_name[-1]) != rvalue.t:
+        if Type.get_type(dotted_name[-1]) != rtype:
             super().error(ErrorType.TYPE_ERROR, "type mismatch in assignment")
 
         if len(dotted_name) == 1:
-            value = self.env.get(name)
-            value.set(
-                rvalue
-            )  # update the value pointed to by the variable, not the mapping in the env
+            if isinstance(rvalue, FunctionValue):
+                self.env.set(name, rvalue) 
+            else:
+                value = self.env.get(name)
+                value.set(
+                    rvalue
+                )  # update the value pointed to by the variable, not the mapping in the env
             return
 
         lvalue = self.env.get(dotted_name[0])
@@ -306,7 +319,7 @@ class Interpreter(InterpreterBase):
                     ErrorType.FAULT_ERROR, "cannot dereference nil member object"
                 )
 
-        if rvalue.t == Type.OBJECT:
+        if isinstance(rvalue, FunctionValue):
             lvalue.v[dotted_name[-1]] = rvalue
         else:
             lvalue.v[dotted_name[-1]] = Value(rvalue.t, rvalue.v)
@@ -351,15 +364,52 @@ class Interpreter(InterpreterBase):
 
         if fcall_name == "inputi" or fcall_name == "inputs":
             return self.__handle_input(fcall_name, args)
-
         if fcall_name == "print":
             return self.__handle_print(args)
 
         actual_args = [self.eval_expr(a) for a in args]
         args_type_sig = self.__get_arguments_type_signature(actual_args)
-        func_def = self.__get_function(fcall_name, args_type_sig)
+        '''func_def = self.__get_function(fcall_name, args_type_sig)'''
+        dotted_name = fcall_name.split(".")
+        if len(dotted_name) > 1: # dis is a method call if the name have more than 1 part
+            print("... this is a method call bc only 1 part")
+            object_name = ".".join(dotted_name[:-1]) #connects prev
+            method_name = dotted_name[-1] # should get the last part
+
+            obj_value = self.eval_expr(Element(self.QUALIFIED_NAME_NODE, name=object_name))
+            if obj_value.v is None:
+                super().error(ErrorType.FAULT_ERROR, "calling method on nil obj")
+
+            if method_name in obj_value.v: #methods are usually stored in dict
+                pass
+            else:
+                super().error(ErrorType.NAME_ERROR, "no method found")
+            
+            if obj_value.v[method_name].v is None:
+                super().error(ErrorType.FAULT_ERROR, "cant call nil functions")
+            else:
+                func_def = obj_value.v[method_name].v
+
+            selfo_value = obj_value 
+            is_method = True
+        else:
+            print("... this is regular function call bc only 1 part")
+            func_def = self.__get_function(fcall_name, args_type_sig)
+            if func_def is None:
+                super().error(ErrorType.FAULT_ERROR, "nil func var")
+            selfo_value = None
+            is_method = False
 
         self.env.enter_func()
+
+        if is_method:
+            self.env.fdef("selfo", selfo_value)
+
+        if len(func_def.formal_args) == len(actual_args):
+            pass
+        else:
+            super().error(ErrorType.TYPE_ERROR, "number of args dont match")
+
         for formal, actual in zip(func_def.formal_args.keys(), actual_args):
             ref_param = func_def.formal_args[
                 formal
@@ -368,6 +418,7 @@ class Interpreter(InterpreterBase):
             self.env.fdef(
                 formal, actual
             )  # no need to check types since we used types for overloading to pick a compatible function already
+                
         res, _ = self.__run_statements(func_def, func_def.statements)
         self.env.exit_func()
 
@@ -556,19 +607,19 @@ class Interpreter(InterpreterBase):
     
     def __get_var_value(self, expr):
         dotted_name = expr.get("name").split(".")
-        print()
-        print(dotted_name[0], "=")
+        #print()
+        #print(dotted_name[0], "=")
         name_length = len(dotted_name)
 
         if not self.env.exists(dotted_name[0]):
             if name_length == 1:
-                print("...finding function", dotted_name, "and returning as func value")
+                #print("...finding function", dotted_name, "and returning as func value")
                 function_value = self.find_function_w_name(dotted_name[0])
-                print(function_value)
+                #print(function_value)
                 return Value(Type.FUNCTION, function_value)
             else:
                 super().error(ErrorType.NAME_ERROR, "variable not defined HEREE")
-        print("... function found and set")
+        #print("... function found and set")
         value = self.env.get(dotted_name[0])
         suffix_name = dotted_name[1:]
         if len(dotted_name) > 1 and dotted_name[0][-1] != "o":
@@ -586,6 +637,7 @@ class Interpreter(InterpreterBase):
 
     def eval_expr(self, expr):
         kind = expr.elem_type
+        print("... kind is", kind)
 
         if kind == self.INT_NODE:
             return Value(Type.INT, expr.get("val"))
@@ -607,6 +659,9 @@ class Interpreter(InterpreterBase):
 
         if kind == self.FCALL_NODE:
             return self.__run_fcall(expr)
+        
+        if kind == self.FUNC_NODE:
+            return FunctionValue(expr)
 
         if kind in self.bops:
             l, r = self.eval_expr(expr.get("op1")), self.eval_expr(expr.get("op2"))
@@ -634,14 +689,14 @@ class Interpreter(InterpreterBase):
     def find_function_w_name(self, name):
         matches = []
         for (key, value) in self.funcs.items():
-            print("... the key is",key)
-            print("... the value is",value)
+            #print("... the key is",key)
+            #print("... the value is",value)
             fname = key[0]
             signature = key[1]
             if fname == name:
                 matches.append(value)
         if matches == []:
-            super().error(ErrorType.NAME_ERROR, "function (", name, ")not defined")
+            super().error(ErrorType.NAME_ERROR, "function not defined")
         if len(matches) != 1:
             super().error(ErrorType.TYPE_ERROR, "function overload")
         return matches[0]
